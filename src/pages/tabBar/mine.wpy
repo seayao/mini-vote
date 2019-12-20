@@ -1,0 +1,59 @@
+<style lang="less">
+</style>
+<wxs module="m1" lang="babel">
+  const getTime = (time) => {
+  let date = getDate(time);
+  let hour = date.getHours();
+  let mins = date.getMinutes();
+  let sec = date.getSeconds();
+  let milli = date.getMilliseconds();
+  return `${hour}:${mins}:${sec}.${milli}`;
+  }
+  module.exports.getTime = getTime;
+</wxs>
+<template>
+  <div>
+    <div class="userinfo" @tap="handleViewTap">
+      <image class="userinfo-avatar" src="{{ userInfo.avatarUrl }}" background-size="cover"/>
+      <div class="userinfo-nickname">{{ userInfo.nickName }}</div>
+    </div>
+    <i-button type="primary" bind:click="handleClick">这是一个按钮</i-button>
+  </div>
+</template>
+
+<script>
+import wepy from '@wepy/core'
+
+wepy.page({
+  hooks: {
+    // Page 级别 hook, 只对当前 Page 的 setData 生效。
+    'before-setData': function (dirty) {
+      if (Math.random() < 0.2) {
+        console.log('setData canceled');
+        return false; // Cancel setData
+      }
+      dirty.time = +new Date();
+      return dirty;
+    }
+  },
+  data: {
+  },
+  computed: {
+  },
+  methods: {
+    handleClick() {
+      console.log(1)
+    }
+  },
+  created () {
+  }
+});
+</script>
+<config>
+{
+  "navigationBarTitleText": "我的",
+  "usingComponents": {
+    "i-button": "../../iview/button/index"
+  }
+}
+</config>

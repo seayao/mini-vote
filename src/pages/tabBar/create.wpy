@@ -1,0 +1,226 @@
+<style lang="less">
+  @import "../../styles/index.less";
+
+  .create-container {
+    padding: 0;
+    background: #ededed;
+  }
+
+  .create-top {
+    background: #fff;
+    .cover-wrap {
+      margin-left: 10px;
+    }
+  }
+
+  .create-main {
+    padding: 5px;
+    margin: 10px 0;
+    background: #fff;
+    box-sizing: border-box;
+    .option-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 50px;
+      padding-left: 80px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+      .option-item-l {
+        display: flex;
+        width: 80px;
+        margin-left: -80px;
+        .option-item-operation {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+        }
+        .option-item-img {
+          display: flex;
+          align-items: center;
+          width: 50px;
+          .custom-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: #eee;
+            .label {
+              color: #666;
+              font-size: 14px;
+            }
+          }
+        }
+      }
+      .option-item-r {
+        width: 100%;
+      }
+    }
+
+    .option-item-add {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 40px;
+      padding-left: 30px;
+      box-sizing: border-box;
+      .option-item-add-l {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        margin-left: -30px;
+      }
+      .option-item-add-r {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        color: #2d8cf0;
+      }
+    }
+  }
+
+  .create-footer {
+    background: #fff;
+    .config-wrap {
+      border-bottom: 1px solid #e9eaec;
+    }
+    .picker-date {
+      margin-right: 20px;
+    }
+    .create-btn-wrap {
+      padding: 10px 50px 10px;
+    }
+  }
+</style>
+<template>
+  <div class="container create-container">
+    <div class="create-top">
+      <van-field
+        :value="title"
+        size="large"
+        required
+        type="textarea"
+        autosize
+        placeholder="投票标题"
+        :custom-style="'font-size: 20px'"
+        :placeholder-style="'font-size: 20px'"/>
+      <van-field
+        :value="description"
+        type="textarea"
+        size="large"
+        :border="false"
+        autosize
+        placeholder="请输入描述(图片可选)"
+        :custom-style="'font-size: 16px'"
+        :placeholder-style="'font-size: 16px'"/>
+      <div class="cover-wrap">
+        <van-uploader :file-list="fileList"/>
+      </div>
+    </div>
+    <div class="create-main">
+      <div v-for="(o, index) in optionList" :key="index" class="option-item">
+        <div class="option-item-l">
+          <div class="option-item-operation" @click="handleRemoveOption(index)">
+            <van-icon name="clear" color="#ed3f14" size="22px"/>
+          </div>
+          <div class="option-item-img">
+            <van-uploader use-slot>
+              <div class="custom-upload">
+                <div class="label">添加</div>
+                <div class="label">图片</div>
+              </div>
+            </van-uploader>
+          </div>
+        </div>
+        <div class="option-item-r">
+          <van-field
+            :value="o.username"
+            required
+            clearable
+            placeholder="请输入姓名"/>
+        </div>
+      </div>
+      <div class="option-item-add" @click="handleAddOption">
+        <div class="option-item-add-l">
+          <van-icon name="add" color="#2d8cf0" size="22px"/>
+        </div>
+        <div class="option-item-add-r">添加选项</div>
+      </div>
+    </div>
+    <div class="create-footer">
+      <i-cell-group i-class="config-wrap">
+        <i-cell title="允许匿名">
+          <i-switch :value="isAnonymous" @change="changeAnonymous" slot="footer"/>
+        </i-cell>
+        <i-cell title="截止时间" i-class="clearfix">
+          <picker :value="deadlineDate" mode="date" class="picker-date fl" start="2019-01-01" end="2100-12-31" slot="footer">
+            <span>{{ deadlineDate }}</span>
+          </picker>
+          <picker :value="deadlineTime" mode="time" class="fl" start="00:00" end="23:59" slot="footer">
+            <span>{{ deadlineTime }}</span>
+          </picker>
+        </i-cell>
+      </i-cell-group>
+      <div class="create-btn-wrap">
+        <i-button size="small" type="primary">发起投票</i-button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import wepy from '@wepy/core'
+
+wepy.page({
+  hooks: {
+  },
+  data: {
+    title: '',
+    description: '',
+    fileList: [],
+    username: '',
+    optionList: [],
+    isAnonymous: true,
+    deadlineDate: '2019-01-01',
+    deadlineTime: '15:36'
+  },
+  computed: {
+  },
+  methods: {
+    handleAddOption() {
+      const tempOption = {
+        key: 'option_' + this.optionList.length,
+        username: ''
+      }
+      this.optionList.push(tempOption)
+    },
+    handleRemoveOption(index) {
+      this.optionList.splice(index, 1)
+    },
+    changeAnonymous() {
+      this.isAnonymous = !this.isAnonymous
+    }
+  },
+  created () {
+  }
+})
+</script>
+<config>
+{
+  "navigationBarTitleText": "创建",
+  "usingComponents": {
+    "van-uploader": "../../vant/uploader/index",
+    "van-field": "../../vant/field/index",
+    "van-icon": "../../vant/icon/index",
+    "i-cell-group": "../../iview/cell-group/index",
+    "i-cell": "../../iview/cell/index",
+    "i-switch": "../../iview/switch/index",
+    "i-button": "../../iview/button/index"
+  }
+}
+</config>

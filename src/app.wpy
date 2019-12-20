@@ -1,0 +1,74 @@
+<style lang="less">
+  @import "./styles/index";
+</style>
+
+<script>
+import wepy from '@wepy/core';
+import eventHub from './common/eventHub';
+
+wepy.app({
+  hooks: {
+    // App 级别 hook，对整个 App 生效
+    // 同时存在 Page hook 和 App hook 时，优先执行 Page hook，返回值再交由 App hook 处
+    'before-setData': function (dirty) {
+      console.log('setData dirty: ', dirty);
+      return dirty;
+    }
+  },
+  globalData: {
+    userInfo: null
+  },
+  onLaunch() {
+    eventHub.$on('app-launch', (...args) => {
+      console.log('app-launch event emitted, the params are:')
+      console.log(args)
+    })
+  },
+  methods: {
+  }
+});
+</script>
+<config>
+{
+  "pages": [
+    "pages/tabBar/create",
+    "pages/tabBar/home",
+    "pages/tabBar/mine",
+    "pages/register",
+    "pages/project-detail",
+    "pages/vote-detail"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#2d8cf0",
+    "navigationBarTitleText": "投票小程序",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#ededed"
+  },
+  "tabBar": {
+    "backgroundColor": "#fff",
+    "color": "#999",
+    "selectedColor": "#1976D2",
+    "list": [
+      {
+        "pagePath": "pages/tabBar/home",
+        "text": "首页",
+        "iconPath": "assets/tabBar/home.png",
+        "selectedIconPath": "assets/tabBar/home-active.png"
+      },
+      {
+        "pagePath": "pages/tabBar/create",
+        "text": "创建",
+        "iconPath": "assets/tabBar/create.png",
+        "selectedIconPath": "assets/tabBar/create-active.png"
+      },
+      {
+        "pagePath": "pages/tabBar/mine",
+        "text": "我的",
+        "iconPath": "assets/tabBar/mine.png",
+        "selectedIconPath": "assets/tabBar/mine-active.png"
+      }
+    ]
+  }
+}
+</config>
