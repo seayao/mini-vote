@@ -1,8 +1,9 @@
 <style scoped lang="less">
   @import "../../styles/index";
   .project-pane {
-    margin-top: 10px;
-    box-shadow: 0 2px 2px rgba(0,0,0,.1);
+    margin-top: 8px;
+    /*box-shadow: 0 2px 2px rgba(0,0,0,.1);*/
+    background: #fff;
   }
 
   .project-panel-main {
@@ -51,24 +52,26 @@
       width: 100%;
       height: 140px;
       background: transparent;
-      .project-cover {
-        width: 100%;
-        height: 100%;
-      }
+      overflow: hidden;
     }
   }
 </style>
 
 <template>
-  <i-panel i-class="project-pane">
+  <div class="project-pane">
     <div class="project-panel-content">
       <div class="project-panel-main">
         <div class="content-top clearfix">
           <div class="content-top-l fl">
             <div class="avatar-time clearfix">
               <div class="avatar-wrap fl">
-                <i-avatar v-if="project.avatar" size="large" :src="project.avatar" />
-                <i-avatar v-else size="large">{{ project.create }}</i-avatar>
+                <van-image
+                  :src="project.avatar"
+                  width="46"
+                  height="46"
+                  border="4"
+                  lazy-load
+                  fit="cover"/>
               </div>
               <div class="username-time fl">
                 <div class="username">{{ project.create }}</div>
@@ -81,10 +84,15 @@
         <div class="content-main">{{ project.title }}</div>
       </div>
       <div v-if="project.cover" class="content-footer">
-        <image mode="aspectFill" lazy-load :src="project.cover" alt="" class="project-cover" />
+        <van-image
+          :src="project.cover"
+          width="100%"
+          height="100%"
+          lazy-load
+          fit="cover"/>
       </div>
     </div>
-  </i-panel>
+  </div>
 </template>
 
 <script>
@@ -112,8 +120,7 @@ wepy.component({
 <config>
   {
     "usingComponents": {
-      "i-panel": "../../iview/panel/index",
-      "i-avatar": "../../iview/avatar/index"
+      "van-image": "../../vant/image/index"
     }
   }
 </config>

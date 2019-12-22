@@ -17,7 +17,6 @@
       <image class="userinfo-avatar" src="{{ userInfo.avatarUrl }}" background-size="cover"/>
       <div class="userinfo-nickname">{{ userInfo.nickName }}</div>
     </div>
-    <i-button type="primary" bind:click="handleClick">这是一个按钮</i-button>
   </div>
 </template>
 
@@ -53,7 +52,6 @@ wepy.page({
 {
   "navigationBarTitleText": "注册",
   "usingComponents": {
-    "i-button": "../iview/button/index"
   }
 }
 </config>

@@ -1,23 +1,111 @@
-<style lang="less">
-</style>
-<wxs module="m1" lang="babel">
-  const getTime = (time) => {
-  let date = getDate(time);
-  let hour = date.getHours();
-  let mins = date.getMinutes();
-  let sec = date.getSeconds();
-  let milli = date.getMilliseconds();
-  return `${hour}:${mins}:${sec}.${milli}`;
+<style scoped lang="less">
+  .mine-container {
+    padding: 0;
+    background: #ededed;
   }
-  module.exports.getTime = getTime;
-</wxs>
+
+  .mine-top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    height: 90px;
+    padding: 10px;
+    background: #fff;
+    box-sizing: border-box;
+    .mine-top-l {
+      display: flex;
+      .user-avatar-wrap {
+        width: 70px;
+        height: 70px;
+        border-radius: 7px;
+        overflow: hidden;
+      }
+      .nickname-wrap {
+        margin-left: 10px;
+        font-size: 18px;
+        color: #000;
+      }
+    }
+
+    .auth-wrap {
+      display: flex;
+      align-items: flex-end;
+      height: 100%;
+    }
+  }
+
+  .mine-main {
+    padding: 10px;
+    background: #fff;
+    .statistics-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      .statistics-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        .number {
+          padding-bottom: 10px;
+          font-size: 18px;
+          color: #000;
+          font-weight: bold;
+        }
+        .label {
+          font-size: 14px;
+          color: #80848f;
+        }
+      }
+    }
+  }
+
+  .mine-footer {
+    margin-top: 10px;
+  }
+</style>
 <template>
-  <div>
-    <div class="userinfo" @tap="handleViewTap">
-      <image class="userinfo-avatar" src="{{ userInfo.avatarUrl }}" background-size="cover"/>
-      <div class="userinfo-nickname">{{ userInfo.nickName }}</div>
+  <div class="container mine-container">
+    <div class="mine-top">
+      <div class="mine-top-l">
+        <div class="user-avatar-wrap">
+          <div class="user-avatar">
+            <open-data type="userAvatarUrl" />
+          </div>
+        </div>
+        <div class="nickname-wrap">
+          <open-data type="userNickName" />
+        </div>
+      </div>
+      <div class="auth-wrap">
+        <van-button type="info" size="small">授权登录</van-button>
+      </div>
     </div>
-    <i-button type="primary" bind:click="handleClick">这是一个按钮</i-button>
+    <div class="mine-main">
+      <div class="statistics-wrap">
+        <div class="statistics-item">
+          <div class="number">0</div>
+          <div class="label">发起</div>
+        </div>
+        <div class="statistics-item">
+          <div class="number">0</div>
+          <div class="label">已投</div>
+        </div>
+        <div class="statistics-item">
+          <div class="number">0</div>
+          <div class="label">待投</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mine-footer">
+      <van-cell-group>
+        <van-cell title="菜单1" is-link />
+        <van-cell title="菜单2" is-link />
+        <van-cell title="菜单3" is-link />
+      </van-cell-group>
+    </div>
   </div>
 </template>
 
@@ -36,6 +124,16 @@ wepy.page({
       return dirty;
     }
   },
+  onLoad() {
+    wx.getUserInfo({
+      success: (res) => {
+        console.log(res)
+      },
+      fail: (err) => {
+        console.log(err)
+      }
+    })
+  },
   data: {
   },
   computed: {
@@ -53,7 +151,9 @@ wepy.page({
 {
   "navigationBarTitleText": "我的",
   "usingComponents": {
-    "i-button": "../../iview/button/index"
+    "van-button": "../../vant/button/index",
+    "van-cell": "../../vant/cell/index",
+    "van-cell-group": "../../vant/cell-group/index"
   }
 }
 </config>

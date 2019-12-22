@@ -51,7 +51,7 @@
     .operation-wrap {
       padding: 0 20px;
       .btn-wrap {
-        margin: 5px 0;
+        margin: 10px 0;
       }
     }
   }
@@ -62,8 +62,12 @@
       <div class="project-title">{{ projectInfo.title }}</div>
       <div class="project-create">
         <div class="avatar-wrap">
-          <i-avatar v-if="projectInfo.create_avatar" size="large" :src="projectInfo.create_avatar" />
-          <i-avatar v-else size="large">{{ projectInfo.create_name }}</i-avatar>
+          <van-image
+            :src="projectInfo.create_avatar"
+            width="50"
+            height="50"
+            radius="4"
+            fit="cover"/>
         </div>
         <div class="create-info">
           <div class="create-label">发起人</div>
@@ -82,10 +86,10 @@
     <div class="project-footer">
       <div class="operation-wrap">
         <div class="btn-wrap">
-          <i-button size="small" type="primary">提交评分</i-button>
+          <van-button type="info" block>提交评分</van-button>
         </div>
         <div class="btn-wrap">
-          <i-button size="small">分享给微信好友</i-button>
+          <van-button block>分享给微信好友</van-button>
         </div>
       </div>
     </div>
@@ -135,10 +139,10 @@ wepy.page({
 <config>
 {
   "usingComponents": {
-    "van-divider": "../vant/divider/index",
-    "i-avatar": "../iview/avatar/index",
     "vote-item": "../components/VoteItem/index",
-    "i-button": "../iview/button/index"
+    "van-divider": "../vant/divider/index",
+    "van-image": "../vant/image/index",
+    "van-button": "../vant/button/index"
   }
 }
 </config>

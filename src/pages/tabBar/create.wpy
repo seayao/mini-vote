@@ -86,11 +86,17 @@
 
   .create-footer {
     background: #fff;
-    .config-wrap {
-      border-bottom: 1px solid #e9eaec;
+    .value-class {
+      flex: none;
+      display: flex;
+      align-items: center;
     }
-    .picker-date {
-      margin-right: 20px;
+    .picker-date, .picker-time {
+      padding: 0 10px;
+      label {
+        color: #000;
+        font-size: 16px;
+      }
     }
     .create-btn-wrap {
       padding: 10px 50px 10px;
@@ -107,8 +113,8 @@
         type="textarea"
         autosize
         placeholder="投票标题"
-        :custom-style="'font-size: 20px'"
-        :placeholder-style="'font-size: 20px'"/>
+        :custom-style="'font-size: 18px'"
+        :placeholder-style="'font-size: 18px'"/>
       <van-field
         :value="description"
         type="textarea"
@@ -119,7 +125,7 @@
         :custom-style="'font-size: 16px'"
         :placeholder-style="'font-size: 16px'"/>
       <div class="cover-wrap">
-        <van-uploader :file-list="fileList"/>
+        <van-uploader :file-list="coverList" :max-count="1"/>
       </div>
     </div>
     <div class="create-main">
@@ -129,7 +135,7 @@
             <van-icon name="clear" color="#ed3f14" size="22px"/>
           </div>
           <div class="option-item-img">
-            <van-uploader use-slot>
+            <van-uploader :file-list="o.img" :max-count="1" use-slot>
               <div class="custom-upload">
                 <div class="label">添加</div>
                 <div class="label">图片</div>
@@ -153,21 +159,30 @@
       </div>
     </div>
     <div class="create-footer">
-      <i-cell-group i-class="config-wrap">
-        <i-cell title="允许匿名">
-          <i-switch :value="isAnonymous" @change="changeAnonymous" slot="footer"/>
-        </i-cell>
-        <i-cell title="截止时间" i-class="clearfix">
-          <picker :value="deadlineDate" mode="date" class="picker-date fl" start="2019-01-01" end="2100-12-31" slot="footer">
-            <span>{{ deadlineDate }}</span>
+      <van-cell-group>
+        <van-cell
+          title="选择嘉宾"
+          is-link
+          link-type="navigateTo"
+          url="/pages/select-user">
+        </van-cell>
+        <van-cell
+          title="允许匿名">
+          <van-switch :checked="isAnonymous" size="24px" @change="changeAnonymous"/>
+        </van-cell>
+        <van-cell
+          value-class="value-class"
+          title="截止时间">
+          <picker :value="deadlineDate" mode="date" class="picker-date" start="2019-01-01" end="2100-12-31">
+            <label>{{ deadlineDate }}</label>
           </picker>
-          <picker :value="deadlineTime" mode="time" class="fl" start="00:00" end="23:59" slot="footer">
-            <span>{{ deadlineTime }}</span>
+          <picker :value="deadlineTime" mode="time" class="picker-time" start="00:00" end="23:59">
+            <label>{{ deadlineTime }}</label>
           </picker>
-        </i-cell>
-      </i-cell-group>
+        </van-cell>
+      </van-cell-group>
       <div class="create-btn-wrap">
-        <i-button size="small" type="primary">发起投票</i-button>
+        <van-button type="info" block>发起投票</van-button>
       </div>
     </div>
   </div>
@@ -175,14 +190,17 @@
 
 <script>
 import wepy from '@wepy/core'
+import { mapState, mapActions } from '@wepy/x';
+import store from '@/store'
 
 wepy.page({
+  store,
   hooks: {
   },
   data: {
     title: '',
     description: '',
-    fileList: [],
+    coverList: [],
     username: '',
     optionList: [],
     isAnonymous: true,
@@ -190,11 +208,13 @@ wepy.page({
     deadlineTime: '15:36'
   },
   computed: {
+    ...mapState(['num'])
   },
   methods: {
     handleAddOption() {
       const tempOption = {
         key: 'option_' + this.optionList.length,
+        img: [],
         username: ''
       }
       this.optionList.push(tempOption)
@@ -204,6 +224,7 @@ wepy.page({
     },
     changeAnonymous() {
       this.isAnonymous = !this.isAnonymous
+      console.log(this.num)
     }
   },
   created () {
@@ -217,10 +238,10 @@ wepy.page({
     "van-uploader": "../../vant/uploader/index",
     "van-field": "../../vant/field/index",
     "van-icon": "../../vant/icon/index",
-    "i-cell-group": "../../iview/cell-group/index",
-    "i-cell": "../../iview/cell/index",
-    "i-switch": "../../iview/switch/index",
-    "i-button": "../../iview/button/index"
+    "van-cell": "../../vant/cell/index",
+    "van-cell-group": "../../vant/cell-group/index",
+    "van-switch": "../../vant/switch/index",
+    "van-button": "../../vant/button/index"
   }
 }
 </config>
