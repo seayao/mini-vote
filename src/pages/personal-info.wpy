@@ -1,0 +1,96 @@
+<style scoped lang="less">
+</style>
+<template>
+  <div class="container">
+    <van-toast id="van-toast" />
+    <van-cell-group>
+      <van-field
+        :value="username"
+        label="名字"
+        clearable
+        placeholder="请输入名字"
+        :border="false"
+        focus
+        use-button-slot
+        @change="handleChangeUserName">
+        <van-button v-if="isSame" slot="button" size="small" type="default" @click="handleBack">返回</van-button>
+        <van-button v-else slot="button" size="small" type="primary" @click="handleUpdate">完成</van-button>
+      </van-field>
+    </van-cell-group>
+  </div>
+</template>
+
+<script>
+import wepy from '@wepy/core'
+import { mapState } from '@wepy/x'
+import store from '@/store'
+import { userUpdateApi } from '@/api/user'
+import Toast from '@/vant/toast/toast'
+
+let usernameOrigin = ''
+
+wepy.page({
+  store,
+  data: {
+    userId: '',
+    username: ''
+  },
+  computed: {
+    ...mapState(['userInfo']),
+    isSame(){
+      return (usernameOrigin === this.username)
+    }
+  },
+  attached() {
+    this.userId = this.userInfo._id
+    this.username = this.userInfo.username
+    usernameOrigin = this.userInfo.username
+  },
+  methods: {
+    handleChangeUserName(event) {
+      this.username = event.$wx.detail
+    },
+    handleUpdate() {
+      if (this.username !== '') {
+        Toast.loading({
+          duration: 0,       // 持续展示 toast
+          forbidClick: true, // 禁用背景点击
+          message: '加载中...'
+        })
+        const tempData = {
+          id: this.userId,
+          username: this.username,
+          updateTime: new Date().getTime()
+        }
+        userUpdateApi(tempData).then(response => {
+          Toast.clear()
+          const res = response.stats
+          if (res.updated === 1) {
+            usernameOrigin = this.username
+            const temp = Object.assign({}, this.userInfo, { username: this.username })
+            store.dispatch('setUserInfo', temp) // 存储用户信息到store
+            this.$back()
+          }
+        }).catch(() => {
+          Toast.clear()
+        })
+      }
+    },
+    handleBack() {
+      this.$back()
+    }
+  }
+})
+</script>
+<config>
+{
+  "navigationBarTitleText": "个人信息",
+  "usingComponents": {
+    "van-cell": "../vant/cell/index",
+    "van-cell-group": "../vant/cell-group/index",
+    "van-field": "../vant/field/index",
+    "van-button": "../vant/button/index",
+    "van-toast": "../vant/toast/index"
+  }
+}
+</config>

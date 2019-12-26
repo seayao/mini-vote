@@ -7,21 +7,10 @@
     margin-top: -10px;
   }
 </style>
-<wxs module="m1" lang="babel">
-const getTime = (time) => {
-  let date = getDate(time);
-  let hour = date.getHours();
-  let mins = date.getMinutes();
-  let sec = date.getSeconds();
-  let milli = date.getMilliseconds();
-  return `${hour}:${mins}:${sec}.${milli}`;
-}
-module.exports.getTime = getTime;
-</wxs>
 <template>
   <div class="container home-container">
     <div class="project-list">
-      <navigator v-for="(item, index) in projectList" :key="index" :url="'/pages/project-detail?projectId='+item.id+'&projectTitle='+item.title">
+      <navigator v-for="(item, index) in projectList" :key="index" :url="'/pages/project-detail?projectId='+item._id+'&projectTitle='+item.title">
         <project-item :project="item"/>
       </navigator>
     </div>
@@ -30,28 +19,54 @@ module.exports.getTime = getTime;
 
 <script>
 import wepy from '@wepy/core'
+import store from '@/store'
+import { mapState } from '@wepy/x'
+import { userDetailApi } from '@/api/user'
+import { projectListApi } from '@/api/project'
 
 wepy.page({
-  hooks: {
-    // Page 级别 hook, 只对当前 Page 的 setData 生效。
-    'before-setData': function (dirty) {
-    }
+  store,
+  computed: {
+    ...mapState(['userInfo'])
   },
   data: {
-    projectList: [
-      { id: 1, create: 'y', title: '优秀医生评选活动优秀医生评选活动优秀医生评选活动优秀医生评选活动', time: '2019-12-19', 'total': 300, cover: '../../assets/cover.png' },
-      { id: 2, create: 'l', title: '护士评选活动', time: '2019-12-19', 'total': 100 },
-      { id: 3, create: 'z', title: '评选活动', time: '2019-12-19', 'total': 50 },
-      { id: 4, avatar: '../../assets/tabBar/home-active.png', create: 'ljk', title: '优秀员工', time: '2019-12-19', 'total': 600 },
-      { id: 5, avatar: '../../assets/tabBar/home-active.png', create: 'ljk', title: '优秀员工', time: '2019-12-19', 'total': 600 },
-      { id: 6, avatar: '../../assets/tabBar/home-active.png', create: 'ljk', title: '优秀员工', time: '2019-12-19', 'total': 600 }
-    ]
+    projectList: []
   },
-  computed: {
+  attached() {
+    if (!this.userInfo || !this.userInfo._openid) {
+      this.getOpenId()
+    } else {
+      this.getDetail()
+    }
+    this.getList()
   },
   methods: {
-  },
-  created () {
+    getOpenId() {
+      // 调用云函数
+      wx.cloud.callFunction({ name: 'getOpenId' }).then(response => {
+        const res = response.result
+        store.dispatch('setUserInfo', { _openid: res.userInfo.openId })
+        this.getDetail()
+      }).catch(err => {
+        console.error('[云函数] [getOpenId] 调用失败', err)
+      })
+    },
+    getDetail() { // 获取用户详情
+      if (!this.userInfo || !this.userInfo._id) {
+        userDetailApi(this.userInfo._openid).then(response => {
+          const res = response.data
+          if (res.length) {
+            store.dispatch('setUserInfo', res[0]) // 存储用户信息到store
+          }
+        })
+      }
+    },
+    getList() {
+      projectListApi().then(response => {
+        this.projectList = response.data
+      }).catch(err => {
+      })
+    }
   }
 })
 </script>

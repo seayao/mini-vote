@@ -5,19 +5,23 @@ wepy.use(vuex)
 
 const store = new vuex.Store({
   state: {
-    num: 0
+    userInfo: {},
+    guestList: []
   },
   mutations: {
-    increment (state) {
-      state.num++;
+    SET_USER_INFO: (state, userInfo) => {
+      state.userInfo = userInfo
+    },
+    SET_GUEST_LIST: (state, guestList) => {
+      state.guestList = guestList
     }
   },
   actions: {
-    increment ({ commit }) {
-      commit('increment');
+    setUserInfo({ commit }, userInfo) {
+      commit('SET_USER_INFO', userInfo)
     },
-    incrementAsync ({ commit }) {
-      setTimeout(() => commit('increment'), 1000);
+    setGuestList({ commit }, guestList) {
+      commit('SET_GUEST_LIST', guestList)
     }
   }
 })

@@ -1,4 +1,4 @@
-<style lang="less">
+<style scoped lang="less">
   @import "../../styles/index.less";
 
   .create-container {
@@ -18,6 +18,7 @@
     margin: 10px 0;
     background: #fff;
     box-sizing: border-box;
+    overflow: hidden;
     .option-item {
       display: flex;
       align-items: center;
@@ -47,6 +48,7 @@
             justify-content: center;
             width: 50px;
             height: 50px;
+            border-radius: 4px;
             background: #eee;
             .label {
               color: #666;
@@ -91,6 +93,10 @@
       display: flex;
       align-items: center;
     }
+    .label-class {
+      color: #ee0a24;
+      font-size: 12px;
+    }
     .picker-date, .picker-time {
       padding: 0 10px;
       label {
@@ -105,27 +111,38 @@
 </style>
 <template>
   <div class="container create-container">
+    <van-notify id="van-notify" />
+    <van-toast id="van-toast" />
     <div class="create-top">
       <van-field
-        :value="title"
+        :value="temp.title"
         size="large"
         required
         type="textarea"
         autosize
         placeholder="投票标题"
         :custom-style="'font-size: 18px'"
-        :placeholder-style="'font-size: 18px'"/>
+        :placeholder-style="'font-size: 18px'"
+        :error-message="titleErrorMsg"
+        @change="handleChangeTitle"/>
       <van-field
-        :value="description"
+        :value="temp.description"
         type="textarea"
         size="large"
         :border="false"
         autosize
         placeholder="请输入描述(图片可选)"
         :custom-style="'font-size: 16px'"
-        :placeholder-style="'font-size: 16px'"/>
+        :placeholder-style="'font-size: 16px'"
+        @change="handleChangeDes"/>
       <div class="cover-wrap">
-        <van-uploader :file-list="coverList" :max-count="1"/>
+        <van-uploader
+          name="cover"
+          :file-list="coverList"
+          :max-count="1"
+          image-fit="aspectFill"
+          @afterread="afterReadCover"
+          @delete="deleteCover"/>
       </div>
     </div>
     <div class="create-main">
@@ -135,7 +152,15 @@
             <van-icon name="clear" color="#ed3f14" size="22px"/>
           </div>
           <div class="option-item-img">
-            <van-uploader :file-list="o.img" :max-count="1" use-slot>
+            <van-uploader
+              :name="o.key"
+              :file-list="o.optionAvatar"
+              :max-count="1"
+              image-fit="aspectFill"
+              use-slot
+              preview-size="50px"
+              @afterread="afterReadAvatar(index, $event)"
+              @delete="deleteAvatar(index)">
               <div class="custom-upload">
                 <div class="label">添加</div>
                 <div class="label">图片</div>
@@ -145,10 +170,12 @@
         </div>
         <div class="option-item-r">
           <van-field
-            :value="o.username"
+            :value="o.optionName"
+            :error-message="o.optionErrorMsg"
             required
             clearable
-            placeholder="请输入姓名"/>
+            placeholder="请输入姓名"
+            @change="handleChangeUserName(index, $event)"/>
         </div>
       </div>
       <div class="option-item-add" @click="handleAddOption">
@@ -162,27 +189,41 @@
       <van-cell-group>
         <van-cell
           title="选择嘉宾"
+          :value="'已选 '+guestList.length+' 位嘉宾'"
           is-link
           link-type="navigateTo"
-          url="/pages/select-user">
+          url="/pages/select-user"
+          use-label-slot
+          label-class="label-class">
+          <div slot="label">{{ guestErrorMsg }}</div>
+        </van-cell>
+        <van-cell
+          title="评分范围(小)">
+          <van-stepper :value="temp.scoreMin" :min="0" :max="temp.scoreMax" @change="handleChangeScoreMin"/>
+        </van-cell>
+        <van-cell
+          title="评分范围(大)">
+          <van-stepper :value="temp.scoreMax" :min="temp.scoreMin" @change="handleChangeScoreMax"/>
         </van-cell>
         <van-cell
           title="允许匿名">
-          <van-switch :checked="isAnonymous" size="24px" @change="changeAnonymous"/>
+          <van-switch :checked="temp.isAnonymous" size="24px" @change="changeAnonymous"/>
         </van-cell>
         <van-cell
           value-class="value-class"
           title="截止时间">
-          <picker :value="deadlineDate" mode="date" class="picker-date" start="2019-01-01" end="2100-12-31">
+          <picker :value="deadlineDate" mode="date" class="picker-date" start="2019/01/01" end="2100/12/31" @change="handleChangeDate">
             <label>{{ deadlineDate }}</label>
           </picker>
-          <picker :value="deadlineTime" mode="time" class="picker-time" start="00:00" end="23:59">
+          <picker :value="deadlineTime" mode="time" class="picker-time" start="00:00" end="23:59" @change="handleChangeTime">
             <label>{{ deadlineTime }}</label>
           </picker>
         </van-cell>
       </van-cell-group>
       <div class="create-btn-wrap">
-        <van-button type="info" block>发起投票</van-button>
+        <van-button v-if="!isReg" type="primary" block open-type="getUserInfo" bindgetuserinfo="handleAddUser">未授权，授权登录？</van-button>
+        <van-button v-if="isReg && operationLoading" :disabled="operationLoading" :loading="operationLoading" type="info" block>加载中...</van-button>
+        <van-button v-if="isReg && !operationLoading"  type="info" block @click="handleAdd">发起投票</van-button>
       </div>
     </div>
   </div>
@@ -190,44 +231,234 @@
 
 <script>
 import wepy from '@wepy/core'
-import { mapState, mapActions } from '@wepy/x';
+import { mapState } from '@wepy/x'
 import store from '@/store'
+import { userAddApi } from '@/api/user'
+import { projectAddApi } from '@/api/project'
+import { optionAddApi } from '@/api/option'
+import Notify from '@/vant/notify/notify'
+import Toast from '@/vant/toast/toast'
 
 wepy.page({
   store,
-  hooks: {
-  },
   data: {
-    title: '',
-    description: '',
+    operationLoading: false,
     coverList: [],
-    username: '',
-    optionList: [],
-    isAnonymous: true,
-    deadlineDate: '2019-01-01',
-    deadlineTime: '15:36'
+    optionList: [{
+      key: 'option_0',
+      optionName: '',
+      optionAvatar: [],
+      optionErrorMsg: ''
+    }],
+    deadlineDate: '2019/01/01',
+    deadlineTime: '15:36',
+    temp: { // 提交数据库数据
+      createUser: '',
+      createAvatar: '',
+      title: '',
+      description: '',
+      coverImg: '',
+      guestIds: [],
+      scoreMin: 0,
+      scoreMax: 10,
+      isAnonymous: true,
+      deadline: ''
+    },
+    titleErrorMsg: '',
+    guestErrorMsg: '',
+    projectId: '', // 项目创建成功后的id
+    optionCounter: 0, // 新增option计数器
+    toastInstance: null
   },
   computed: {
-    ...mapState(['num'])
+    ...mapState(['userInfo', 'guestList']),
+    isReg() {
+      return (this.userInfo && this.userInfo._id)
+    }
+  },
+  watch: {
+    guestList(val) {
+      if (val && val.length) {
+        this.guestErrorMsg = ''
+      } else {
+        this.guestErrorMsg = '至少选择 1 位嘉宾'
+      }
+    }
   },
   methods: {
+    handleChangeTitle(event) {
+      this.temp.title = event.$wx.detail
+      if (event.$wx.detail) {
+        this.titleErrorMsg = ''
+      } else {
+        this.titleErrorMsg = '投票标题不能为空'
+      }
+    },
+    handleChangeDes(event) {
+      this.temp.description = event.$wx.detail
+    },
+    afterReadCover(event) { // 封面预览
+      const { file } = event.$wx.detail
+      this.coverList.push(file)
+    },
+    deleteCover(event) { // 封面删除
+      const { index } = event.$wx.detail
+      this.coverList.splice(index, 1)
+    },
+    afterReadAvatar(index, event) { // 头像预览
+      const { file } = event.$wx.detail
+      this.optionList[index].optionAvatar.push(file)
+    },
+    deleteAvatar(index) { // 头像删除
+      this.optionList[index].optionAvatar = []
+    },
     handleAddOption() {
       const tempOption = {
         key: 'option_' + this.optionList.length,
-        img: [],
-        username: ''
+        optionName: '',
+        optionAvatar: [],
+        optionErrorMsg: ''
       }
       this.optionList.push(tempOption)
     },
     handleRemoveOption(index) {
-      this.optionList.splice(index, 1)
+      if (this.optionList.length > 1) {
+        this.optionList.splice(index, 1)
+      } else {
+        this.optionList[0].optionErrorMsg = '至少添加一个投票选项'
+      }
+    },
+    handleChangeUserName(index, event) {
+      this.optionList[index].optionName = event.$wx.detail
+      if (event.$wx.detail) {
+        this.optionList[index].optionErrorMsg = ''
+      } else {
+        this.optionList[index].optionErrorMsg = '姓名不能为空'
+      }
+    },
+    handleChangeScoreMin(event) {
+      this.temp.scoreMin = event.$wx.detail
+    },
+    handleChangeScoreMax(event) {
+      this.temp.scoreMax = event.$wx.detail
     },
     changeAnonymous() {
-      this.isAnonymous = !this.isAnonymous
-      console.log(this.num)
+      this.temp.isAnonymous = !this.temp.isAnonymous
+    },
+    handleChangeDate(event) {
+      this.deadlineDate = event.$wx.detail.value
+    },
+    handleChangeTime(event) {
+      this.deadlineTime = event.$wx.detail.value
+    },
+    resetTemp() { // 重置数据
+      store.dispatch('setGuestList', []) // 存储嘉宾到store
+    },
+    handleAdd() { // 点击了发起投票
+      if (this.temp.title === '') {
+        this.titleErrorMsg = '投票标题不能为空'
+      } else if (!this.optionList || !this.optionList.length) {
+        Notify('请至少添加一个投票选项')
+      } else {
+        let isValid = true
+        this.optionList.forEach((option, index) => {
+          if (option.optionName === '') {
+            this.optionList[index].optionErrorMsg = '姓名不能为空'
+            return isValid = false
+          }
+        })
+        if (isValid) {
+          if (!this.guestList || !this.guestList.length) {
+            this.guestErrorMsg = '至少选择 1 位嘉宾'
+          } else { // 验证成功提交数据
+            this.guestErrorMsg = ''
+            this.addData()
+          }
+        }
+      }
+    },
+    addData() {
+      this.operationLoading = true
+      Toast.loading({
+        duration: 0,       // 持续展示 toast
+        forbidClick: true, // 禁用背景点击
+        message: '加载中...'
+      })
+      this.temp.createUser = this.userInfo.username
+      this.temp.createAvatar = this.userInfo.avatarUrl
+      if (this.coverList.length > 0) { // 处理封面图
+        this.temp.coverImg = this.coverList[0].path
+      }
+      this.temp.guestIds = this.guestList
+      this.temp.deadline = this.deadlineDate +' '+ this.deadlineTime
+      const tempData = Object.assign({}, this.temp, {
+        state: 1, // 默认启用项目
+        createTime: new Date().getTime()
+      })
+      projectAddApi(tempData).then(response => {
+        this.projectId = response._id // 保存项目id
+        this.handleAddOptionData()// 添加option
+        this.resetTemp() // 重置数据
+      }).catch(() => {
+        this.operationLoading = false
+        Toast.clear()
+      })
+    },
+    handleAddOptionData() {
+      this.optionCounter = 0
+      this.optionList.forEach(option => { // 处理option数据
+        const tempOption = {
+          projectId: this.projectId,
+          optionName: option.optionName,
+          optionAvatar: (option.optionAvatar.length > 0 ? option.optionAvatar[0].path : ''),
+          average: 0
+        }
+        this.addOptionData(tempOption)
+      })
+    },
+    addOptionData(tempOption) { // 新增option数据
+      optionAddApi(tempOption).then(response => {
+        this.optionCounter++
+        if (this.optionCounter === this.optionList.length) {
+          this.operationLoading = false
+          Toast.clear()
+          // 跳转投票页面
+        }
+      }).catch(() => {
+        this.operationLoading = false
+        Toast.clear()
+      })
+    },
+    handleAddUser(event) { // 授权获取用户信息
+      const userInfo = event.$wx.detail.userInfo
+      if (userInfo) { // 同意授权
+        this.addUserData(userInfo)
+      }
+    },
+    addUserData(data) {
+      Toast.loading({
+        duration: 0,       // 持续展示 toast
+        forbidClick: true, // 禁用背景点击
+        message: '加载中...'
+      })
+      const tempData = Object.assign({}, data, {
+        username: data.nickName,
+        state: 0, // 默认用户禁用
+        roles: ['user'],
+        createTime: new Date().getTime(),
+        updateTime: new Date().getTime()
+      })
+      userAddApi(tempData).then(response => {
+        Toast.success({
+          forbidClick: true, // 禁用背景点击
+          message: '登录成功'
+        })
+        const temp = Object.assign({}, tempData, {_id: response._id})
+        store.dispatch('setUserInfo', temp) // 存储用户信息到store
+      }).catch(() => {
+        Toast.clear()
+      })
     }
-  },
-  created () {
   }
 })
 </script>
@@ -241,7 +472,10 @@ wepy.page({
     "van-cell": "../../vant/cell/index",
     "van-cell-group": "../../vant/cell-group/index",
     "van-switch": "../../vant/switch/index",
-    "van-button": "../../vant/button/index"
+    "van-button": "../../vant/button/index",
+    "van-stepper": "../../vant/stepper/index",
+    "van-notify": "../../vant/notify/index",
+    "van-toast": "../../vant/toast/index"
   }
 }
 </config>

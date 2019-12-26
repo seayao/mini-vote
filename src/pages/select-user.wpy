@@ -54,7 +54,7 @@
             </div>
             <div class="username">{{ u.name }}</div>
           </div>
-          <van-checkbox :name="u.id"/>
+          <van-checkbox :value="u.id" :name="u.id"/>
         </van-cell>
       </van-cell-group>
     </van-checkbox-group>
@@ -62,9 +62,9 @@
 </template>
 
 <script>
-import wepy from '@wepy/core';
-import { mapState, mapActions } from '@wepy/x';
-import store from '@/store';
+import wepy from '@wepy/core'
+import { mapState } from '@wepy/x'
+import store from '@/store'
 
 wepy.page({
   store,
@@ -72,43 +72,48 @@ wepy.page({
     isAllSelect: false,
     result: [],
     userList: [{
-      id: 1,
+      id: '1',
       name: '那么',
+      avatar: '',
       isSelect: false
     }, {
-      id: 2,
+      id: '2',
       name: '里斯',
+      avatar: '',
       isSelect: false
     }, {
-      id: 3,
+      id: '3',
       name: '张三',
+      avatar: '',
       isSelect: false
     }, {
-      id: 4,
+      id: '4',
       name: '马六',
+      avatar: '',
       isSelect: false
     }]
   },
   computed: {
-    ...mapState(['num'])
+    ...mapState(['guestList'])
+  },
+  attached() {
+    this.result = this.guestList.map(u => u)
+    this.isAllSelect = (this.result.length === this.userList.length)
   },
   methods: {
-    ...mapActions([ 'increment', 'incrementAsync' ]),
     handleAllSelect() { // 是否全选
       if (this.isAllSelect) {
         this.result = []
         this.isAllSelect = false
       } else {
         this.result = this.userList.map(u => {
-          return u.id.toString()
+          return u.id
         })
         this.isAllSelect = true
       }
-      console.log(this.num)
-      this.increment()
+      store.dispatch('setGuestList', this.result) // 存储嘉宾到store
     },
     handleSelect(id) { // 选择某一个
-      id = id.toString()
       const index = this.result.indexOf(id)
       if (index > -1) {
         this.result.splice(index, 1)
@@ -116,6 +121,7 @@ wepy.page({
         this.result.push(id)
       }
       this.isAllSelect = (this.result.length === this.userList.length)
+      store.dispatch('setGuestList', this.result) // 存储嘉宾到store
     }
   }
 })

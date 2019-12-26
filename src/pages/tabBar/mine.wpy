@@ -31,6 +31,10 @@
       display: flex;
       align-items: flex-end;
       height: 100%;
+      .upgrade-label {
+        font-size: 14px;
+        color: rgba(69, 90, 100, 0.6);
+      }
     }
   }
 
@@ -75,11 +79,15 @@
           </div>
         </div>
         <div class="nickname-wrap">
-          <open-data type="userNickName" />
+          <div v-if="userInfo && userInfo.username">{{ userInfo.username }}</div>
+          <open-data v-else type="userNickName" />
         </div>
       </div>
       <div class="auth-wrap">
-        <van-button type="info" size="small">授权登录</van-button>
+        <van-button v-if="listLoading" :loading="listLoading" loading-text="加载中" type="info" size="small" />
+        <van-button v-if="canIUse && !isReg && !listLoading" :loading="operationLoading" type="primary" size="small" open-type="getUserInfo" bindgetuserinfo="handleAdd">授权登录</van-button>
+        <van-button v-if="canIUse && isReg && !listLoading" :loading="operationLoading" type="info" size="small" @click="handleUpdate">修改信息</van-button>
+        <div v-if="!canIUse" class="upgrade-label">请升级微信版本</div>
       </div>
     </div>
     <div class="mine-main">
@@ -111,41 +119,54 @@
 
 <script>
 import wepy from '@wepy/core'
+import { mapState } from '@wepy/x'
+import store from '@/store'
+import { userAddApi } from '@/api/user'
 
 wepy.page({
-  hooks: {
-    // Page 级别 hook, 只对当前 Page 的 setData 生效。
-    'before-setData': function (dirty) {
-      if (Math.random() < 0.2) {
-        console.log('setData canceled');
-        return false; // Cancel setData
-      }
-      dirty.time = +new Date();
-      return dirty;
-    }
-  },
-  onLoad() {
-    wx.getUserInfo({
-      success: (res) => {
-        console.log(res)
-      },
-      fail: (err) => {
-        console.log(err)
-      }
-    })
-  },
+  store,
   data: {
+    canIUse: wx.canIUse('button.open-type.getUserInfo'),
+    listLoading: false,
+    operationLoading: false
   },
   computed: {
-  },
-  methods: {
-    handleClick() {
-      console.log(1)
+    ...mapState(['userInfo']),
+    isReg() {
+      return (this.userInfo && this.userInfo._id)
     }
   },
-  created () {
+  attached() {
+  },
+  methods: {
+    handleAdd(event) { // 授权获取用户信息
+      const userInfo = event.$wx.detail.userInfo
+      if (userInfo) { // 同意授权
+        this.addData(userInfo)
+      }
+    },
+    addData(data) {
+      this.operationLoading = true
+      const tempData = Object.assign({}, data, {
+        username: data.nickName,
+        state: 0, // 默认用户禁用
+        roles: ['user'],
+        createTime: new Date().getTime(),
+        updateTime: new Date().getTime()
+      })
+      userAddApi(tempData).then(response => {
+        this.operationLoading = false
+        const temp = Object.assign({}, tempData, {_id: response._id})
+        store.dispatch('setUserInfo', temp) // 存储用户信息到store
+      }).catch(() => {
+        this.operationLoading = false
+      })
+    },
+    handleUpdate() { // 修改用户信息
+      this.$navigate({ url: '/pages/personal-info' })
+    }
   }
-});
+})
 </script>
 <config>
 {

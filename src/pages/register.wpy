@@ -1,4 +1,4 @@
-<style lang="less">
+<style scoped lang="less">
 </style>
 <wxs module="m1" lang="babel">
   const getTime = (time) => {
@@ -43,10 +43,8 @@ wepy.page({
     handleClick() {
       console.log(1)
     }
-  },
-  created () {
   }
-});
+})
 </script>
 <config>
 {

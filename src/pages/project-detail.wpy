@@ -1,9 +1,15 @@
 <style scoped lang="less">
   @import "../styles/index.less";
 
+  .project-detail-container {
+    padding: 15px 0;
+  }
+
   .project-header {
     width: 100%;
     height: auto;
+    padding: 0 15px;
+    box-sizing: border-box;
     .project-title {
       color: #000;
       font-size: 20px;
@@ -29,7 +35,7 @@
         }
       }
     }
-    .deadline {
+    .content {
       margin-bottom: 5px;
       font-size: 16px;
       color: #000;
@@ -41,12 +47,76 @@
   }
 
   .project-des {
+    padding: 0 10px;
     text-indent: 2em;
     font-size: 16px;
     color: #000;
   }
 
+  .project-main {
+    margin-top: -16px;
+    .option-pane-wrap {
+      padding: 15px 0;
+      border-bottom: 1px solid #ededed;
+      box-sizing: border-box;
+      .option-pane-preview {
+        display: flex;
+        padding: 0 16px;
+        .option-pane-content {
+          width: 100%;
+          padding-left: 10px;
+          box-sizing: border-box;
+          .title {
+            margin-bottom: 6px;
+            font-size: 18px;
+            color: #000;
+          }
+          .des {
+            font-size: 14px;
+            .label {
+              color: #808695;
+            }
+            .content {
+              color: #ee0a24;
+            }
+          }
+          .score-show-wrap { // 评分展示区域
+            width: 100%;
+            padding: 2px 5px;
+            margin-top: 6px;
+            border-radius: 4px;
+            background: #dfdddb;
+            box-sizing: border-box;
+            .score-show-preview {
+              float: left;
+              display: flex;
+              width: 50%;
+              padding: 3px;
+              box-sizing: border-box;
+              .score-show-content {
+                padding-left: 10px;
+                font-size: 14px;
+                box-sizing: border-box;
+                .name {
+                  color: #000;
+                }
+                .score {
+                  color: #2d8cf0;
+                }
+              }
+            }
+          }
+
+          .score-operation-wrap { // 评分操作区域
+            margin-top: 6px;
+          }
+        }
+      }
+    }
+  }
+
   .project-footer {
+    padding: 0 10px;
     margin-top: 20px;
     .operation-wrap {
       padding: 0 20px;
@@ -57,13 +127,14 @@
   }
 </style>
 <template>
-  <div class="container">
+  <div class="container project-detail-container">
+    <van-toast id="van-toast" />
     <div class="project-header">
       <div class="project-title">{{ projectInfo.title }}</div>
       <div class="project-create">
         <div class="avatar-wrap">
           <van-image
-            :src="projectInfo.create_avatar"
+            :src="projectInfo.createAvatar"
             width="50"
             height="50"
             radius="4"
@@ -71,22 +142,71 @@
         </div>
         <div class="create-info">
           <div class="create-label">发起人</div>
-          <div class="create-name">{{ projectInfo.create_name }}</div>
+          <div class="create-name">{{ projectInfo.createUser }}</div>
         </div>
       </div>
-      <div class="deadline">截止日期：{{ projectInfo.deadline }}</div>
-      <div class="tips">(提示：点击选项查看详情，投票后可查看投票结果)</div>
+      <div class="content">截止日期：{{ projectInfo.deadline }}</div>
+      <div class="content">评分范围：{{ projectInfo.scoreMin }}~{{ projectInfo.scoreMax }}(分)</div>
+      <div class="tips">提示：评完分后方可查看结果</div>
     </div>
     <van-divider />
     <div class="project-des">{{ projectInfo.description }}</div>
     <van-divider />
     <div class="project-main">
-      <vote-item v-for="(vote, index) in voteList" :key="index" :vote="vote"/>
+      <div v-for="(option, index) in optionList" :key="index" class="option-pane-wrap">
+        <van-skeleton
+          :loading="listLoading"
+          :row="2"
+          title
+          avatar
+          avatar-size="50px"
+          avatar-shape="square">
+          <div class="option-pane-preview">
+            <van-image
+              :src="option.optionAvatar"
+              width="50"
+              height="50"
+              radius="4"
+              lazy-load
+              fit="cover"/>
+            <div class="option-pane-content">
+              <div class="title">{{ option.optionName }}</div>
+              <div class="des">
+                <span class="label">平均分：</span>
+                <span class="content">{{ option.average }}分</span>
+              </div>
+              <div v-if="isMeScore" class="score-show-wrap clearfix">
+                <div v-for="s in option.scores" :key="s._id" class="score-show-preview">
+                  <van-image
+                    :src="s.userAvatar"
+                    width="40"
+                    height="40"
+                    radius="4"
+                    lazy-load
+                    fit="cover"/>
+                  <div class="score-show-content">
+                    <div class="name">{{ s.username }}</div>
+                    <div class="score">{{ s.score }}分</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="score-operation-wrap">
+                <van-stepper
+                  :value="option.score"
+                  :min="projectInfo.scoreMin"
+                  :max="projectInfo.scoreMax"
+                  @change="handleChangeScore(index, $event)" />
+              </div>
+            </div>
+          </div>
+        </van-skeleton>
+      </div>
     </div>
     <div class="project-footer">
       <div class="operation-wrap">
-        <div class="btn-wrap">
-          <van-button type="info" block>提交评分</van-button>
+        <div v-if="!isMeScore" class="btn-wrap">
+          <van-button v-if="operationLoading" :disabled="operationLoading" type="info" block>加载中...</van-button>
+          <van-button v-else type="info" block @click="handleConfirmScore">提交评分</van-button>
         </div>
         <div class="btn-wrap">
           <van-button block>分享给微信好友</van-button>
@@ -98,11 +218,19 @@
 
 <script>
 import wepy from '@wepy/core'
+import { mapState } from '@wepy/x'
+import store from '@/store'
+import { projectDetailApi } from '@/api/project'
+import { optionListApi } from '@/api/option'
+import { scoreListApi, scoreAddApi } from '@/api/score'
+import Toast from '@/vant/toast/toast'
 
 wepy.page({
+  store,
   onLoad(option) {
     this.projectId = option.projectId
     this.projectTitle = option.projectTitle
+    this.getDetail(this.projectId)
   },
   onReady() {
     wx.setNavigationBarTitle({
@@ -110,39 +238,123 @@ wepy.page({
     })
   },
   data: {
+    listLoading: false,
+    operationLoading: false,
     projectId: '',
     projectTitle: '',
-    projectInfo: {
-      title: '优秀护士评选活动',
-      create_avatar: '',
-      create_name: 'Y',
-      description: '为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养为了培养',
-      deadline: '2019-12-31',
-    },
-    voteList: [
-      { id: 1, create: '张三', score: 7.5, cover: '../../assets/cover.png' },
-      { id: 3, create: '李四', score: 0, cover: '' },
-      { id: 2, create: '王五', score: 6.5, cover: '../../assets/cover.png' },
-      { id: 3, create: '马六', score: 0, cover: '' },
-      { id: 4, create: 'jack', score: 9, cover: '../../assets/cover.png' },
-      { id: 5, create: 'mike', score: 0, cover: '' }
-    ]
+    projectInfo: {},
+    optionList: [],
+    scoreCounter: 0,
+    listCounter: 0,
+    isMeScore: true
   },
   computed: {
+    ...mapState(['userInfo'])
   },
+  attached() {},
   methods: {
-  },
-  created () {
+    getDetail(id) {
+      this.listLoading = true
+      projectDetailApi(id).then(response => {
+        this.projectInfo = response.data
+        this.getOptionList(id)
+      }).catch(() => {
+        this.listLoading = false
+      })
+    },
+    getOptionList(projectId) {
+      optionListApi(projectId).then(response => {
+        const tempScore = (this.projectInfo.scoreMin || 0)
+        this.optionList = response.data.map(v => {
+          this.$set(v, 'score', tempScore)
+          return v
+        })
+        this.getScoreList() // 获取score数据
+      }).catch(() => {
+        this.listLoading = false
+      })
+    },
+    handleChangeScore(index, event) {
+      this.optionList[index].score = event.$wx.detail
+    },
+    handleConfirmScore() { // 提交评分
+      this.operationLoading = true
+      Toast.loading({
+        duration: 0,       // 持续展示 toast
+        forbidClick: true, // 禁用背景点击
+        message: '加载中...'
+      })
+      this.scoreCounter = 0
+      const time = new Date().getTime()
+      this.optionList.forEach(option => { // 从option数据 抽取 score数据
+        const tempScore = {
+          optionId: option._id,
+          username: this.userInfo.username,
+          userAvatar: this.userInfo.avatarUrl,
+          score: option.score,
+          createTime: time
+        }
+        this.addScoreData(tempScore)
+      })
+    },
+    addScoreData(tempScore) { // 提交数据
+      scoreAddApi(tempScore).then(response => {
+        this.scoreCounter++
+        if (this.scoreCounter === this.optionList.length) {
+          this.operationLoading = false
+          Toast.clear()
+          this.getScoreList() // 重新获取评分
+        }
+      }).catch(() => {
+        this.operationLoading = false
+        Toast.clear()
+      })
+    },
+    getScoreList() { // 获取每个option的score数据
+      this.listCounter = 0
+      this.optionList.map(o => {
+        scoreListApi(o._id).then(response => {
+          this.listCounter++
+          const res = (response.data || [])
+          if (this.listCounter === this.optionList.length) {
+            this.listLoading = false
+            this.handleIsMeScore(res)
+          }
+          // 计算平均分
+          const average = res.reduce(this.handleAverage, { avg: 0, n: 0 }).avg
+          this.$set(o, 'average', average)
+          this.$set(o, 'scores', res)
+          return o
+        }).catch(() => {
+          this.listLoading = false
+        })
+      })
+    },
+    handleIsMeScore(temp) { // 我是否评过分
+      if (temp && temp.length) {
+        temp.forEach(v => {
+          return this.isMeScore = (v._openid === this.userInfo._openid)
+        })
+      } else {
+        this.isMeScore = false
+      }
+    },
+    handleAverage({ avg, n }, temp) { // 计算平均分
+      return { avg: (temp.score + n * avg) / (n + 1), n: n + 1 }
+    }
   }
 })
 </script>
 <config>
 {
   "usingComponents": {
-    "vote-item": "../components/VoteItem/index",
     "van-divider": "../vant/divider/index",
     "van-image": "../vant/image/index",
-    "van-button": "../vant/button/index"
+    "van-progress": "../vant/progress/index",
+    "van-stepper": "../vant/stepper/index",
+    "van-button": "../vant/button/index",
+    "van-toast": "../vant/toast/index",
+    "van-skeleton": "../vant/skeleton/index"
   }
 }
 </config>

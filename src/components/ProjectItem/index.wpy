@@ -1,7 +1,7 @@
 <style scoped lang="less">
   @import "../../styles/index";
   .project-pane {
-    margin-top: 8px;
+    margin-top: 6px;
     /*box-shadow: 0 2px 2px rgba(0,0,0,.1);*/
     background: #fff;
   }
@@ -66,16 +66,16 @@
             <div class="avatar-time clearfix">
               <div class="avatar-wrap fl">
                 <van-image
-                  :src="project.avatar"
-                  width="46"
-                  height="46"
-                  border="4"
+                  :src="project.createAvatar"
+                  width="50"
+                  height="50"
+                  radius="4"
                   lazy-load
                   fit="cover"/>
               </div>
               <div class="username-time fl">
-                <div class="username">{{ project.create }}</div>
-                <div class="time">{{ project.time }}</div>
+                <div class="username">{{ project.createUser }}</div>
+                <div class="time">{{ project.createTime }}</div>
               </div>
             </div>
           </div>

@@ -111,19 +111,19 @@ VantComponent({
                 }
                 // 触发上传之前的钩子函数
                 if (useBeforeRead) {
-                    this.$emit('before-read', {
+                    this.$emit('beforeread', {
                         file,
                         name,
                         callback: (result) => {
                             if (result) {
                                 // 开始上传
-                                this.$emit('after-read', { file, name });
+                                this.$emit('afterread', { file, name });
                             }
                         }
                     });
                 }
                 else {
-                    this.$emit('after-read', { file, name });
+                    this.$emit('afterread', { file, name });
                 }
             });
         },
