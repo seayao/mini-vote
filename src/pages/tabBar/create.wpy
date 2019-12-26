@@ -423,6 +423,7 @@ wepy.page({
           this.operationLoading = false
           Toast.clear()
           // 跳转投票页面
+          store.dispatch('setIsRefresh', true) // 刷新首页数据
         }
       }).catch(() => {
         this.operationLoading = false

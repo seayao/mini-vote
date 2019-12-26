@@ -26,11 +26,18 @@ import { projectListApi } from '@/api/project'
 
 wepy.page({
   store,
-  computed: {
-    ...mapState(['userInfo'])
-  },
   data: {
     projectList: []
+  },
+  computed: {
+    ...mapState(['userInfo', 'isRefresh'])
+  },
+  watch: {
+    isRefresh(val) {
+      if (val) {
+        this.getList()
+      }
+    }
   },
   attached() {
     if (!this.userInfo || !this.userInfo._openid) {
@@ -64,7 +71,9 @@ wepy.page({
     getList() {
       projectListApi().then(response => {
         this.projectList = response.data
+        store.dispatch('setIsRefresh', false) // 刷新首页数据
       }).catch(err => {
+        store.dispatch('setIsRefresh', false) // 刷新首页数据
       })
     }
   }

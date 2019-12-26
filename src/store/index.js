@@ -6,7 +6,8 @@ wepy.use(vuex)
 const store = new vuex.Store({
   state: {
     userInfo: {},
-    guestList: []
+    guestList: [],
+    isRefresh: false
   },
   mutations: {
     SET_USER_INFO: (state, userInfo) => {
@@ -14,6 +15,9 @@ const store = new vuex.Store({
     },
     SET_GUEST_LIST: (state, guestList) => {
       state.guestList = guestList
+    },
+    SET_IS_REFRESH: (state, isRefresh) => {
+      state.isRefresh = isRefresh
     }
   },
   actions: {
@@ -22,6 +26,9 @@ const store = new vuex.Store({
     },
     setGuestList({ commit }, guestList) {
       commit('SET_GUEST_LIST', guestList)
+    },
+    setIsRefresh({ commit }, isRefresh) {
+      commit('SET_IS_REFRESH', isRefresh)
     }
   }
 })

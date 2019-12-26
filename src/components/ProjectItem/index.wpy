@@ -79,7 +79,7 @@
               </div>
             </div>
           </div>
-          <div class="content-top-r fr">{{ project.total }}人参与</div>
+          <div class="content-top-r fr">{{ project.guestIds.length }}人参与</div>
         </div>
         <div class="content-main">{{ project.title }}</div>
       </div>
