@@ -109,9 +109,10 @@
 
     <div class="mine-footer">
       <van-cell-group>
-        <van-cell title="菜单1" is-link />
-        <van-cell title="菜单2" is-link />
-        <van-cell title="菜单3" is-link />
+        <van-cell v-if="isAdmin" title="管理员" is-link />
+        <van-cell title="嘉宾" is-link url="/pages/user?state=1"/>
+        <van-cell title="待审核" is-link url="/pages/user?state=0"/>
+        <van-cell title="关于" is-link />
       </van-cell-group>
     </div>
   </div>
@@ -134,6 +135,9 @@ wepy.page({
     ...mapState(['userInfo']),
     isReg() {
       return (this.userInfo && this.userInfo._id)
+    },
+    isAdmin() {
+      return (this.userInfo && this.userInfo._id && this.userInfo.roles.includes('admin'))
     }
   },
   attached() {

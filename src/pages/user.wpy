@@ -1,0 +1,142 @@
+<style scoped lang="less">
+  .select-user-container {
+    padding: 0;
+    .value-class {
+      flex: none;
+      display: flex;
+      align-items: center;
+    }
+    .user-item {
+      display: flex;
+      align-items: center;
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        overflow: hidden;
+      }
+      .username {
+        margin-left: 8px;
+        font-size: 16px;
+        color: #000;
+      }
+    }
+  }
+</style>
+
+<template>
+  <div class="select-user-container container">
+    <div class="operation-wrap">
+    </div>
+    <van-checkbox-group :value="result">
+      <van-cell-group>
+        <van-cell
+          title="全选/反选"
+          value-class="value-class"
+          clickable
+          @click="handleAllSelect">
+          <van-checkbox :value="isAllSelect" shape="square"/>
+        </van-cell>
+        <van-cell
+          v-for="(u, index) in userList"
+          :key="index"
+          value-class="value-class"
+          clickable
+          @click="handleSelect(u.id)">
+          <div class="user-item" slot="title">
+            <div class="user-avatar">
+              <van-image
+                :src="u.avatarUrl"
+                width="40"
+                height="40"
+                radius="4"
+                lazy-load
+                fit="cover"/>
+            </div>
+            <div class="username">{{ u.username }}</div>
+          </div>
+          <van-checkbox :value="u.id" :name="u.id"/>
+        </van-cell>
+      </van-cell-group>
+    </van-checkbox-group>
+  </div>
+</template>
+
+<script>
+import wepy from '@wepy/core'
+import { mapState } from '@wepy/x'
+import store from '@/store'
+import { userListApi } from '@/api/user'
+
+wepy.page({
+  store,
+  onLoad(option) {
+    this.listQuery.state = Number(option.state)
+    this.pageTitle = this.listQuery.state === 0 ? '待审核' : '嘉宾'
+    this.getList()
+  },
+  onReady() {
+    wx.setNavigationBarTitle({
+      title: this.pageTitle
+    })
+  },
+  data: {
+    pageTitle: '',
+    listQuery: {
+      state: 0
+    },
+    isAllSelect: false,
+    result: [],
+    userList: []
+  },
+  computed: {
+    ...mapState(['guestList'])
+  },
+  attached() {
+    this.result = this.guestList.map(u => u)
+    this.isAllSelect = (this.result.length === this.userList.length)
+  },
+  methods: {
+    getList() {
+      userListApi(this.listQuery).then(response => {
+        console.log(response)
+        this.userList = response.data
+      }).catch(() => {
+      })
+    },
+    handleAllSelect() { // 是否全选
+      if (this.isAllSelect) {
+        this.result = []
+        this.isAllSelect = false
+      } else {
+        this.result = this.userList.map(u => {
+          return u.id
+        })
+        this.isAllSelect = true
+      }
+      store.dispatch('setGuestList', this.result) // 存储嘉宾到store
+    },
+    handleSelect(id) { // 选择某一个
+      const index = this.result.indexOf(id)
+      if (index > -1) {
+        this.result.splice(index, 1)
+      } else {
+        this.result.push(id)
+      }
+      this.isAllSelect = (this.result.length === this.userList.length)
+      store.dispatch('setGuestList', this.result) // 存储嘉宾到store
+    }
+  }
+})
+</script>
+<config>
+  {
+    "navigationBarTitleText": "...",
+    "usingComponents": {
+      "van-cell": "../vant/cell/index",
+      "van-cell-group": "../vant/cell-group/index",
+      "van-checkbox": "../vant/checkbox/index",
+      "van-checkbox-group": "../vant/checkbox-group/index",
+      "van-image": "../vant/image/index"
+    }
+  }
+</config>

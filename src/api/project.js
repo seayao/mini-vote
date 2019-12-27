@@ -2,7 +2,7 @@ const db = wx.cloud.database()
 
 export function projectListApi(data) {
   return new Promise((resolve, reject) => {
-    db.collection('project').where({data}).get().then(res => {
+    db.collection('project').where(data).orderBy('createTime', 'desc').get().then(res => {
       resolve(res)
     }).catch(err => {
       reject(err)

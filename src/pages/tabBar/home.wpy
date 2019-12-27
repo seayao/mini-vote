@@ -69,7 +69,7 @@ wepy.page({
       }
     },
     getList() {
-      projectListApi().then(response => {
+      projectListApi({}).then(response => {
         this.projectList = response.data
         store.dispatch('setIsRefresh', false) // 刷新首页数据
       }).catch(err => {

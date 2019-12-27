@@ -174,7 +174,7 @@
             :error-message="o.optionErrorMsg"
             required
             clearable
-            placeholder="请输入姓名"
+            placeholder="请输入选项内容"
             @change="handleChangeUserName(index, $event)"/>
         </div>
       </div>
@@ -212,7 +212,7 @@
         <van-cell
           value-class="value-class"
           title="截止时间">
-          <picker :value="deadlineDate" mode="date" class="picker-date" start="2019/01/01" end="2100/12/31" @change="handleChangeDate">
+          <picker :value="deadlineDate" mode="date" class="picker-date" start="2019-01-01" end="2100-12-31" @change="handleChangeDate">
             <label>{{ deadlineDate }}</label>
           </picker>
           <picker :value="deadlineTime" mode="time" class="picker-time" start="00:00" end="23:59" @change="handleChangeTime">
@@ -250,7 +250,7 @@ wepy.page({
       optionAvatar: [],
       optionErrorMsg: ''
     }],
-    deadlineDate: '2019/01/01',
+    deadlineDate: '2019-01-01',
     deadlineTime: '15:36',
     temp: { // 提交数据库数据
       createUser: '',
@@ -333,7 +333,7 @@ wepy.page({
       if (event.$wx.detail) {
         this.optionList[index].optionErrorMsg = ''
       } else {
-        this.optionList[index].optionErrorMsg = '姓名不能为空'
+        this.optionList[index].optionErrorMsg = '选项内容不能为空'
       }
     },
     handleChangeScoreMin(event) {
@@ -363,7 +363,7 @@ wepy.page({
         let isValid = true
         this.optionList.forEach((option, index) => {
           if (option.optionName === '') {
-            this.optionList[index].optionErrorMsg = '姓名不能为空'
+            this.optionList[index].optionErrorMsg = '选项内容不能为空'
             return isValid = false
           }
         })

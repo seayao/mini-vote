@@ -48,11 +48,39 @@
     }
   }
 
-  .project-des {
+  .project-des-wrap {
     padding: 0 10px;
-    text-indent: 2em;
-    font-size: 16px;
-    color: #000;
+    .remind-time-wrap {
+      width: 100%;
+      height: 36px;
+      padding: 0 20px;
+      box-sizing: border-box;
+      .remind-time {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 4px;
+        background: #dfdddb;
+        .label {
+          display: inline-block;
+          height: 20px;
+          margin-right: 3px;
+          font-size: 14px;
+          color: #000;
+        }
+        .van-count-down {
+          color: #1989fa;
+        }
+      }
+    }
+    .des {
+      margin-top: 8px;
+      text-indent: 2em;
+      font-size: 16px;
+      color: #000;
+    }
   }
 
   .project-main {
@@ -154,7 +182,18 @@
       <div class="tips">提示：评完分后方可查看结果</div>
     </div>
     <van-divider />
-    <div class="project-des">{{ projectInfo.description }}</div>
+    <div class="project-des-wrap">
+      <div class="remind-time-wrap">
+        <div class="remind-time">
+          <span class="label">距离评分结束还有</span>
+          <van-count-down
+            :time="5000"
+            format="DD 天 HH 时 mm 分"
+            @finish="handleScoreFinish"/>
+        </div>
+      </div>
+      <div class="des">{{ projectInfo.description }}</div>
+    </div>
     <van-divider />
     <div class="project-main">
       <div v-for="(option, index) in optionList" :key="index" class="option-pane-wrap">
@@ -345,6 +384,9 @@ wepy.page({
     },
     handleAverage({ avg, n }, temp) { // 计算平均分
       return { avg: (Number(temp.score) + n * avg) / (n + 1), n: n + 1 }
+    },
+    handleScoreFinish() {
+      console.log(1)
     }
   }
 })
@@ -358,7 +400,8 @@ wepy.page({
     "van-stepper": "../vant/stepper/index",
     "van-button": "../vant/button/index",
     "van-toast": "../vant/toast/index",
-    "van-skeleton": "../vant/skeleton/index"
+    "van-skeleton": "../vant/skeleton/index",
+    "van-count-down": "../vant/count-down/index"
   }
 }
 </config>

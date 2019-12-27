@@ -26,7 +26,8 @@ wepy.app({
     "pages/select-user",
     "pages/register",
     "pages/project-detail",
-    "pages/personal-info"
+    "pages/personal-info",
+    "pages/user"
   ],
   "window": {
     "backgroundTextStyle": "light",
