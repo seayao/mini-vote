@@ -1,8 +1,16 @@
 const db = wx.cloud.database()
+const _ = db.command
 
-export function projectListApi(data) {
+export function projectListApi(guestId) {
   return new Promise((resolve, reject) => {
-    db.collection('project').where(data).orderBy('createTime', 'desc').get().then(res => {
+    db.collection('project').where(_.or([
+      {
+        isOpen: true
+      },
+      {
+        guestIds: _.in([guestId])
+      }
+    ])).orderBy('createTime', 'desc').get().then(res => {
       resolve(res)
     }).catch(err => {
       reject(err)
@@ -23,6 +31,16 @@ export function projectDetailApi(id) {
 export function projectAddApi(data) {
   return new Promise((resolve, reject) => {
     db.collection('project').add({data}).then(res => {
+      resolve(res)
+    }).catch(err => {
+      reject(err)
+    })
+  })
+}
+
+export function projectUpdateApi(_id, data) {
+  return new Promise((resolve, reject) => {
+    db.collection('project').doc(_id).update({data}).then(res => {
       resolve(res)
     }).catch(err => {
       reject(err)

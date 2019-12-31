@@ -18,7 +18,6 @@
     margin: 10px 0;
     background: #fff;
     box-sizing: border-box;
-    overflow: hidden;
     .option-item {
       display: flex;
       align-items: center;
@@ -59,6 +58,9 @@
       }
       .option-item-r {
         width: 100%;
+        height: auto;
+        max-height: 58px;
+        overflow: hidden;
       }
     }
 
@@ -154,7 +156,7 @@
           <div class="option-item-img">
             <van-uploader
               :name="o.key"
-              :file-list="o.optionAvatar"
+              :file-list="o.optionImgTemp"
               :max-count="1"
               image-fit="aspectFill"
               use-slot
@@ -206,16 +208,21 @@
           <van-stepper :value="temp.scoreMax" :min="temp.scoreMin" @change="handleChangeScoreMax"/>
         </van-cell>
         <van-cell
-          title="允许匿名">
-          <van-switch :checked="temp.isAnonymous" size="24px" @change="changeAnonymous"/>
+          title="是否公开投票"
+          use-label-slot>
+          <div slot="label">{{ openMsg }}</div>
+          <van-switch :checked="temp.isOpen" size="24px" @change="changeOpen"/>
         </van-cell>
         <van-cell
           value-class="value-class"
-          title="截止时间">
-          <picker :value="deadlineDate" mode="date" class="picker-date" start="2019-01-01" end="2100-12-31" @change="handleChangeDate">
+          title="截止时间"
+          use-label-slot
+          label-class="label-class">
+          <div slot="label">{{ deadlineErrorMsg }}</div>
+          <picker :value="deadlineDate" mode="date" class="picker-date" :start="deadlineDateMin" end="2100-12-31" @change="handleChangeDate">
             <label>{{ deadlineDate }}</label>
           </picker>
-          <picker :value="deadlineTime" mode="time" class="picker-time" start="00:00" end="23:59" @change="handleChangeTime">
+          <picker :value="deadlineTime" mode="time" class="picker-time" :start="deadlineTimeMin" end="23:59" @change="handleChangeTime">
             <label>{{ deadlineTime }}</label>
           </picker>
         </van-cell>
@@ -233,6 +240,7 @@
 import wepy from '@wepy/core'
 import { mapState } from '@wepy/x'
 import store from '@/store'
+import { createUniqueString, formatDate, formatTime } from '@/utils'
 import { userAddApi } from '@/api/user'
 import { projectAddApi } from '@/api/project'
 import { optionAddApi } from '@/api/option'
@@ -247,31 +255,39 @@ wepy.page({
     optionList: [{
       key: 'option_0',
       optionName: '',
-      optionAvatar: [],
+      optionImgTemp: [],
       optionErrorMsg: ''
     }],
-    deadlineDate: '2019-01-01',
-    deadlineTime: '15:36',
+    deadlineDateMin: formatDate(),
+    deadlineTimeMin: formatTime(),
+    deadlineDate: formatDate(1),
+    deadlineTime: formatTime(),
     temp: { // 提交数据库数据
       createUser: '',
       createAvatar: '',
       title: '',
       description: '',
+      coverImgCloud: '',
       coverImg: '',
       guestIds: [],
       scoreMin: 0,
       scoreMax: 10,
-      isAnonymous: true,
-      deadline: ''
+      isOpen: false,
+      deadline: 0
     },
     titleErrorMsg: '',
     guestErrorMsg: '',
+    deadlineErrorMsg: '',
+    openMsg: '',
     projectId: '', // 项目创建成功后的id
-    optionCounter: 0, // 新增option计数器
-    toastInstance: null
+    projectTitle: '', // 项目title
+    optionCounter: 0 // 新增option计数器
   },
   computed: {
     ...mapState(['userInfo', 'guestList']),
+    openMsg() {
+      return (this.temp.isOpen ? '所有人可以查看该项目' : '仅参与的嘉宾可以查看')
+    },
     isReg() {
       return (this.userInfo && this.userInfo._id)
     }
@@ -284,6 +300,8 @@ wepy.page({
         this.guestErrorMsg = '至少选择 1 位嘉宾'
       }
     }
+  },
+  attached() {
   },
   methods: {
     handleChangeTitle(event) {
@@ -307,16 +325,16 @@ wepy.page({
     },
     afterReadAvatar(index, event) { // 头像预览
       const { file } = event.$wx.detail
-      this.optionList[index].optionAvatar.push(file)
+      this.optionList[index].optionImgTemp.push(file)
     },
     deleteAvatar(index) { // 头像删除
-      this.optionList[index].optionAvatar = []
+      this.optionList[index].optionImgTemp = []
     },
     handleAddOption() {
       const tempOption = {
         key: 'option_' + this.optionList.length,
         optionName: '',
-        optionAvatar: [],
+        optionImgTemp: [],
         optionErrorMsg: ''
       }
       this.optionList.push(tempOption)
@@ -342,8 +360,8 @@ wepy.page({
     handleChangeScoreMax(event) {
       this.temp.scoreMax = event.$wx.detail
     },
-    changeAnonymous() {
-      this.temp.isAnonymous = !this.temp.isAnonymous
+    changeOpen() {
+      this.temp.isOpen = !this.temp.isOpen
     },
     handleChangeDate(event) {
       this.deadlineDate = event.$wx.detail.value
@@ -352,13 +370,41 @@ wepy.page({
       this.deadlineTime = event.$wx.detail.value
     },
     resetTemp() { // 重置数据
+      this.temp = { // 提交数据库数据
+        createUser: '',
+        createAvatar: '',
+        title: '',
+        description: '',
+        coverImgCloud: '',
+        coverImg: '',
+        guestIds: [],
+        scoreMin: 0,
+        scoreMax: 10,
+        isOpen: false,
+        deadline: 0
+      }
+      this.coverList = []
+      this.optionList = [{
+        key: 'option_0',
+        optionName: '',
+        optionImgTemp: [],
+        optionErrorMsg: ''
+      }]
+      this.deadlineDateMin = formatDate()
+      this.deadlineTimeMin = formatTime()
+      this.deadlineDate = formatDate(1)
+      this.deadlineTime = formatTime()
       store.dispatch('setGuestList', []) // 存储嘉宾到store
     },
     handleAdd() { // 点击了发起投票
+      const deadlineStr = this.deadlineDate + ' ' + this.deadlineTime
+      this.temp.deadline = new Date(deadlineStr.replace(/-/g, '/')).getTime()
       if (this.temp.title === '') {
         this.titleErrorMsg = '投票标题不能为空'
       } else if (!this.optionList || !this.optionList.length) {
         Notify('请至少添加一个投票选项')
+      } else if (this.temp.deadline < new Date().getTime()) {
+        this.deadlineErrorMsg = '截止时间不能早于当前时间'
       } else {
         let isValid = true
         this.optionList.forEach((option, index) => {
@@ -372,12 +418,12 @@ wepy.page({
             this.guestErrorMsg = '至少选择 1 位嘉宾'
           } else { // 验证成功提交数据
             this.guestErrorMsg = ''
-            this.addData()
+            this.handleAddData()
           }
         }
       }
     },
-    addData() {
+    handleAddData() {
       this.operationLoading = true
       Toast.loading({
         duration: 0,       // 持续展示 toast
@@ -386,17 +432,33 @@ wepy.page({
       })
       this.temp.createUser = this.userInfo.username
       this.temp.createAvatar = this.userInfo.avatarUrl
-      if (this.coverList.length > 0) { // 处理封面图
-        this.temp.coverImg = this.coverList[0].path
-      }
       this.temp.guestIds = this.guestList
-      this.temp.deadline = this.deadlineDate +' '+ this.deadlineTime
-      const tempData = Object.assign({}, this.temp, {
-        state: 1, // 默认启用项目
-        createTime: new Date().getTime()
-      })
+      let tempData = null
+      if (this.coverList && this.coverList.length) { // 处理封面图
+        const filePath = this.coverList[0].path
+        const cloudPath = createUniqueString() + filePath.match(/\.[^.]+?$/)
+        wx.cloud.uploadFile({
+          cloudPath,
+          filePath, // 文件路径
+        }).then(response => {
+          this.temp.coverImgCloud = response.fileID
+          tempData = Object.assign({}, this.temp, {
+            state: 1, // 默认启用项目
+            createTime: new Date().getTime()
+          })
+        })
+      } else {
+        tempData = Object.assign({}, this.temp, {
+          state: 1, // 默认启用项目
+          createTime: new Date().getTime()
+        })
+      }
+      this.addData(tempData)
+    },
+    addData(tempData) {
       projectAddApi(tempData).then(response => {
         this.projectId = response._id // 保存项目id
+        this.projectTitle = this.temp.title
         this.handleAddOptionData()// 添加option
         this.resetTemp() // 重置数据
       }).catch(() => {
@@ -407,13 +469,33 @@ wepy.page({
     handleAddOptionData() {
       this.optionCounter = 0
       this.optionList.forEach(option => { // 处理option数据
-        const tempOption = {
-          projectId: this.projectId,
-          optionName: option.optionName,
-          optionAvatar: (option.optionAvatar.length > 0 ? option.optionAvatar[0].path : ''),
-          average: 0
+        let tempOption = null
+        if (option.optionImgTemp && option.optionImgTemp.length) { // 处理图片上传
+          const filePath = option.optionImgTemp[0].path
+          const cloudPath = createUniqueString() + filePath.match(/\.[^.]+?$/)
+          wx.cloud.uploadFile({
+            cloudPath,
+            filePath, // 文件路径
+          }).then(response => {
+            tempOption = {
+              projectId: this.projectId,
+              optionName: option.optionName,
+              optionImg: '',
+              optionImgCloud: response.fileID,
+              average: 0
+            }
+            this.addOptionData(tempOption)
+          })
+        } else {
+          tempOption = {
+            projectId: this.projectId,
+            optionName: option.optionName,
+            optionImg: '',
+            optionImgCloud: '',
+            average: 0
+          }
+          this.addOptionData(tempOption)
         }
-        this.addOptionData(tempOption)
       })
     },
     addOptionData(tempOption) { // 新增option数据
@@ -422,8 +504,8 @@ wepy.page({
         if (this.optionCounter === this.optionList.length) {
           this.operationLoading = false
           Toast.clear()
-          // 跳转投票页面
           store.dispatch('setIsRefresh', true) // 刷新首页数据
+          this.$navigate({ url: '/pages/project-detail?projectId='+this.projectId+'&projectTitle='+this.projectTitle })  // 跳转投票页面
         }
       }).catch(() => {
         this.operationLoading = false
@@ -445,7 +527,7 @@ wepy.page({
       const tempData = Object.assign({}, data, {
         username: data.nickName,
         state: 0, // 默认用户禁用
-        roles: ['user'],
+        role: 'user',
         createTime: new Date().getTime(),
         updateTime: new Date().getTime()
       })

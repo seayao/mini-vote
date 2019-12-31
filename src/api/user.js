@@ -30,9 +30,9 @@ export function userAddApi(data) {
   })
 }
 
-export function userUpdateApi(data) {
+export function userUpdateApi(_id, data) {
   return new Promise((resolve, reject) => {
-    db.collection('user').doc(data.id).update({data}).then(res => {
+    db.collection('user').doc(_id).update({data}).then(res => {
       resolve(res)
     }).catch(err => {
       reject(err)

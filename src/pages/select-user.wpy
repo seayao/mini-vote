@@ -41,20 +41,20 @@
           :key="index"
           value-class="value-class"
           clickable
-          @click="handleSelect(u.id)">
+          @click="handleSelect(u._openid)">
           <div class="user-item" slot="title">
             <div class="user-avatar">
               <van-image
-                :src="u.avatar"
+                :src="u.avatarUrl"
                 width="40"
                 height="40"
                 radius="4"
                 lazy-load
                 fit="cover"/>
             </div>
-            <div class="username">{{ u.name }}</div>
+            <div class="username">{{ u.username }}</div>
           </div>
-          <van-checkbox :value="u.id" :name="u.id"/>
+          <van-checkbox :value="u._openid" :name="u._openid"/>
         </van-cell>
       </van-cell-group>
     </van-checkbox-group>
@@ -65,49 +65,43 @@
 import wepy from '@wepy/core'
 import { mapState } from '@wepy/x'
 import store from '@/store'
+import { userListApi } from '@/api/user'
 
 wepy.page({
   store,
   data: {
+    listQuery: {
+      state: 1
+    },
     isAllSelect: false,
     result: [],
-    userList: [{
-      id: '1',
-      name: '那么',
-      avatar: '',
-      isSelect: false
-    }, {
-      id: '2',
-      name: '里斯',
-      avatar: '',
-      isSelect: false
-    }, {
-      id: '3',
-      name: '张三',
-      avatar: '',
-      isSelect: false
-    }, {
-      id: '4',
-      name: '马六',
-      avatar: '',
-      isSelect: false
-    }]
+    userList: []
   },
   computed: {
     ...mapState(['guestList'])
   },
   attached() {
     this.result = this.guestList.map(u => u)
-    this.isAllSelect = (this.result.length === this.userList.length)
+    this.getList()
   },
   methods: {
+    getList() {
+      this.listLoading = true
+      userListApi(this.listQuery).then(response => {
+        // this.listLoading = false
+        this.userList = response.data
+        this.isAllSelect = (this.result.length && this.result.length === this.userList.length)
+      }).catch(() => {
+        this.listLoading = false
+      })
+    },
     handleAllSelect() { // 是否全选
       if (this.isAllSelect) {
         this.result = []
         this.isAllSelect = false
       } else {
         this.result = this.userList.map(u => {
-          return u.id
+          return u._openid
         })
         this.isAllSelect = true
       }

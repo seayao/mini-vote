@@ -13,6 +13,7 @@
       <navigator v-for="(item, index) in projectList" :key="index" :url="'/pages/project-detail?projectId='+item._id+'&projectTitle='+item.title">
         <project-item :project="item"/>
       </navigator>
+      <van-divider contentPosition="center">加载完毕</van-divider>
     </div>
   </div>
 </template>
@@ -22,7 +23,7 @@ import wepy from '@wepy/core'
 import store from '@/store'
 import { mapState } from '@wepy/x'
 import { userDetailApi } from '@/api/user'
-import { projectListApi } from '@/api/project'
+import { projectListApi, projectUpdateApi } from '@/api/project'
 
 wepy.page({
   store,
@@ -45,14 +46,13 @@ wepy.page({
     } else {
       this.getDetail()
     }
-    this.getList()
   },
   methods: {
     getOpenId() {
       // 调用云函数
       wx.cloud.callFunction({ name: 'getOpenId' }).then(response => {
         const res = response.result
-        store.dispatch('setUserInfo', { _openid: res.userInfo.openId })
+        store.dispatch('setUserInfo', { _openid: res.openid })
         this.getDetail()
       }).catch(err => {
         console.error('[云函数] [getOpenId] 调用失败', err)
@@ -65,15 +65,36 @@ wepy.page({
           if (res.length) {
             store.dispatch('setUserInfo', res[0]) // 存储用户信息到store
           }
+          this.getList()
         })
       }
     },
     getList() {
-      projectListApi({}).then(response => {
+      const tempId = this.userInfo._openid || ''
+      projectListApi(tempId).then(response => {
         this.projectList = response.data
+        this.projectList = response.data.map(p => {
+          if (!p.coverImg && p.coverImgCloud) { // 获取云图片的真实地址
+            wx.cloud.getTempFileURL({
+              fileList: [p.coverImgCloud]
+            }).then(response => {
+              const res = response.fileList[0]
+              const tempData = {
+                coverImg: res.tempFileURL
+              }
+              this.$set(p, 'coverImg', res.tempFileURL)
+              this.updateData(p._id, tempData)
+            })
+          }
+          return p
+        })
         store.dispatch('setIsRefresh', false) // 刷新首页数据
       }).catch(err => {
         store.dispatch('setIsRefresh', false) // 刷新首页数据
+      })
+    },
+    updateData(_id, tempData) {
+      projectUpdateApi(_id, tempData).then(response => {
       })
     }
   }
@@ -82,7 +103,8 @@ wepy.page({
 <config>
 {
   "usingComponents": {
-    "project-item": "../../components/ProjectItem/index"
+    "project-item": "../../components/ProjectItem/index",
+    "van-divider": "../../vant/divider/index"
   }
 }
 </config>

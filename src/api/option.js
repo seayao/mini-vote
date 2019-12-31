@@ -19,3 +19,13 @@ export function optionAddApi(data) {
     })
   })
 }
+
+export function optionUpdateApi(_id, data) {
+  return new Promise((resolve, reject) => {
+    db.collection('option').doc(_id).update({data}).then(res => {
+      resolve(res)
+    }).catch(err => {
+      reject(err)
+    })
+  })
+}

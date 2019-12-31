@@ -58,11 +58,10 @@ wepy.page({
           message: '加载中...'
         })
         const tempData = {
-          id: this.userId,
           username: this.username,
           updateTime: new Date().getTime()
         }
-        userUpdateApi(tempData).then(response => {
+        userUpdateApi(this.userId, tempData).then(response => {
           Toast.clear()
           const res = response.stats
           if (res.updated === 1) {

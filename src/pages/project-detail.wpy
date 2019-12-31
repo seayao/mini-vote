@@ -7,6 +7,33 @@
     padding: 15px 0;
   }
 
+  .remind-time-wrap {
+    width: 100%;
+    height: 36px;
+    padding: 0 20px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    .remind-time {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      background: #dfdddb;
+      .label {
+        display: inline-block;
+        height: 20px;
+        margin-right: 3px;
+        font-size: 14px;
+        color: #000;
+      }
+      .van-count-down {
+        color: #1989fa;
+      }
+    }
+  }
+
   .project-header {
     width: 100%;
     height: auto;
@@ -50,30 +77,11 @@
 
   .project-des-wrap {
     padding: 0 10px;
-    .remind-time-wrap {
+    .cover-img-wrap {
       width: 100%;
-      height: 36px;
-      padding: 0 20px;
-      box-sizing: border-box;
-      .remind-time {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-        border-radius: 4px;
-        background: #dfdddb;
-        .label {
-          display: inline-block;
-          height: 20px;
-          margin-right: 3px;
-          font-size: 14px;
-          color: #000;
-        }
-        .van-count-down {
-          color: #1989fa;
-        }
-      }
+      height: 200px;
+      margin-top: 8px;
+      background: #ededed;
     }
     .des {
       margin-top: 8px;
@@ -117,23 +125,25 @@
             border-radius: 4px;
             background: #dfdddb;
             box-sizing: border-box;
-            .score-show-preview {
+            .score-show-preview-wrap {
               float: left;
-              display: flex;
               width: 50%;
               height: 40px;
               margin-bottom: 5px;
               box-sizing: border-box;
               overflow: hidden;
-              .score-show-content {
-                padding-left: 10px;
-                font-size: 14px;
-                box-sizing: border-box;
-                .name {
-                  color: #000;
-                }
-                .score {
-                  color: #2d8cf0;
+              .score-show-preview{
+                display: flex;
+                .score-show-content {
+                  padding-left: 10px;
+                  font-size: 14px;
+                  box-sizing: border-box;
+                  .name {
+                    color: #000;
+                  }
+                  .score {
+                    color: #2d8cf0;
+                  }
                 }
               }
             }
@@ -158,9 +168,41 @@
     }
   }
 </style>
+
+<wxs module="filter" lang="babel">
+  const getTime = (time) => {
+  const date = getDate(time)
+  const y = date.getFullYear()
+  const m = date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1
+  const d = date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
+  const hh = date.getHours() < 10 ? '0' + date.getHours() : date.getHours()
+  const mm = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()
+  return y + '-' + m + '-' + d + ' ' + hh + ':' + mm
+  }
+  module.exports.getTime = getTime
+</wxs>
+
 <template>
   <div class="container project-detail-container">
     <van-toast id="van-toast" />
+    <div class="remind-time-wrap">
+      <div v-if="listLoading" class="remind-time">
+        <span class="label">加载中...</span>
+      </div>
+      <div v-else-if="isComplete" class="remind-time">
+        <span class="label">该项目已完成</span>
+      </div>
+      <div v-else-if="isFinish" class="remind-time">
+        <span class="label">该项目已结束</span>
+      </div>
+      <div v-else class="remind-time">
+        <span class="label">距离评分结束还有</span>
+        <van-count-down
+          :time="remindTime"
+          format="DD 天 HH 时 mm 分"
+          @finish="handleScoreFinish"/>
+      </div>
+    </div>
     <div class="project-header">
       <div class="project-title">{{ projectInfo.title }}</div>
       <div class="project-create">
@@ -170,27 +212,28 @@
             width="50"
             height="50"
             radius="4"
-            fit="cover"/>
+            fit="cover"
+            @click="handlePreImg(projectInfo.createAvatar)"/>
         </div>
         <div class="create-info">
           <div class="create-label">发起人</div>
           <div class="create-name">{{ projectInfo.createUser }}</div>
         </div>
       </div>
-      <div class="content">截止日期：{{ projectInfo.deadline }}</div>
+      <div class="content">截止日期：{{ filter.getTime(projectInfo.deadline) }}</div>
       <div class="content">评分范围：{{ projectInfo.scoreMin }}~{{ projectInfo.scoreMax }}(分)</div>
       <div class="tips">提示：评完分后方可查看结果</div>
     </div>
     <van-divider />
     <div class="project-des-wrap">
-      <div class="remind-time-wrap">
-        <div class="remind-time">
-          <span class="label">距离评分结束还有</span>
-          <van-count-down
-            :time="5000"
-            format="DD 天 HH 时 mm 分"
-            @finish="handleScoreFinish"/>
-        </div>
+      <div v-if="projectInfo.coverImg" class="cover-img-wrap">
+        <van-image
+          :src="projectInfo.coverImg"
+          width="100%"
+          height="100%"
+          lazy-load
+          fit="cover"
+          @click="handlePreImg(projectInfo.coverImg)"/>
       </div>
       <div class="des">{{ projectInfo.description }}</div>
     </div>
@@ -206,34 +249,38 @@
           avatar-shape="square">
           <div class="option-pane-preview">
             <van-image
-              :src="option.optionAvatar"
+              :src="option.optionImg"
               width="50"
               height="50"
               radius="4"
               lazy-load
-              fit="cover"/>
+              fit="cover"
+              @click="handlePreImg(option.optionImg)"/>
             <div class="option-pane-content">
               <div class="title">{{ option.optionName }}</div>
               <div class="des">
                 <span class="label">平均分：</span>
                 <span class="content">{{ option.average }}分</span>
               </div>
-              <div v-if="isMeScore" class="score-show-wrap clearfix">
-                <div v-for="s in option.scores" :key="s._id" class="score-show-preview">
-                  <van-image
-                    :src="s.userAvatar"
-                    width="40"
-                    height="40"
-                    radius="4"
-                    lazy-load
-                    fit="cover"/>
-                  <div class="score-show-content">
-                    <div class="name">{{ s.username }}</div>
-                    <div class="score">{{ s.score }}分</div>
+              <div v-if="isMeCreate && option.scores && option.scores.length" class="score-show-wrap clearfix">
+                <div v-for="s in option.scores" :key="s._id" class="score-show-preview-wrap">
+                  <div v-if="s._openid === userInfo._openid" class="score-show-preview">
+                    <van-image
+                      :src="s.userAvatar"
+                      width="40"
+                      height="40"
+                      radius="4"
+                      lazy-load
+                      fit="cover"
+                      @click="handlePreImg(s.userAvatar)"/>
+                    <div class="score-show-content">
+                      <div class="name">{{ s.username }}</div>
+                      <div class="score">{{ s.score }}分</div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div v-else class="score-operation-wrap">
+              <div v-if="meCanScore" class="score-operation-wrap">
                 <van-stepper
                   :value="option.score"
                   :min="projectInfo.scoreMin"
@@ -247,12 +294,12 @@
     </div>
     <div class="project-footer">
       <div class="operation-wrap">
-        <div v-if="!isMeScore" class="btn-wrap">
+        <div v-if="meCanScore" class="btn-wrap">
           <van-button v-if="operationLoading" :disabled="operationLoading" type="info" block>加载中...</van-button>
           <van-button v-else type="info" block @click="handleConfirmScore">提交评分</van-button>
         </div>
         <div class="btn-wrap">
-          <van-button block>分享给微信好友</van-button>
+          <van-button open-type="share" block>分享给微信好友</van-button>
         </div>
       </div>
     </div>
@@ -264,8 +311,10 @@ import wepy from '@wepy/core'
 import { mapState } from '@wepy/x'
 import store from '@/store'
 import { projectDetailApi } from '@/api/project'
-import { optionListApi } from '@/api/option'
+import { optionListApi, optionUpdateApi } from '@/api/option'
 import { scoreListApi, scoreAddApi } from '@/api/score'
+import { messageListApi, messageUpdateApi } from '@/api/message'
+import setting from '@/setting'
 import Toast from '@/vant/toast/toast'
 
 wepy.page({
@@ -289,10 +338,25 @@ wepy.page({
     optionList: [1], // 初始化
     scoreCounter: 0,
     listCounter: 0,
-    isMeScore: true
+    isMeScore: false,
+    isFinish: false, // 项目是否结束
+    isComplete: false // 项目是否完成（区别于结束，结束：项目到期，完成：所有嘉宾评分完毕）
   },
   computed: {
-    ...mapState(['userInfo'])
+    ...mapState(['userInfo']),
+    remindTime() { // 评分剩余时间
+      return (this.projectInfo.deadline - new Date().getTime())
+    },
+    meCanScore() {
+      if (this.projectInfo.guestIds && this.projectInfo.guestIds.length) {
+        return (this.projectInfo.guestIds.includes(this.userInfo._openid) && !this.isMeScore && !this.isFinish)
+      } else {
+        return false
+      }
+    },
+    isMeCreate() {
+      return (this.projectInfo._openid === this.userInfo._openid)
+    }
   },
   attached() {},
   methods: {
@@ -301,6 +365,10 @@ wepy.page({
       projectDetailApi(id).then(response => {
         this.projectInfo = response.data
         this.getOptionList(id)
+
+        this.handleGetMsg()
+
+
       }).catch(() => {
         this.listLoading = false
       })
@@ -309,6 +377,18 @@ wepy.page({
       optionListApi(projectId).then(response => {
         const tempScore = (this.projectInfo.scoreMin || 0)
         this.optionList = response.data.map(v => {
+          if (!v.optionImg && v.optionImgCloud) { // 获取云图片的真实地址
+            wx.cloud.getTempFileURL({
+              fileList: [v.optionImgCloud]
+            }).then(response => {
+              const res = response.fileList[0]
+              const tempData = {
+                optionImg: res.tempFileURL
+              }
+              this.$set(v, 'optionImg', res.tempFileURL)
+              this.updateOptionData(v._id, tempData)
+            })
+          }
           this.$set(v, 'score', tempScore)
           return v
         })
@@ -317,10 +397,15 @@ wepy.page({
         this.listLoading = false
       })
     },
+    updateOptionData(_id, tempData) {
+      optionUpdateApi(_id, tempData).then(respones => {
+      })
+    },
     handleChangeScore(index, event) {
       this.optionList[index].score = event.$wx.detail
     },
     handleConfirmScore() { // 提交评分
+      this.handleSubscribe(this.projectInfo) // 处理订阅消息
       this.operationLoading = true
       Toast.loading({
         duration: 0,       // 持续展示 toast
@@ -338,6 +423,29 @@ wepy.page({
           createTime: time
         }
         this.addScoreData(tempScore)
+      })
+    },
+    handleSubscribe(projectInfo) { // 订阅消息 当项目完成时（项目截止或者所有嘉宾投完票），发送服务通知
+      let receiveIds = projectInfo.guestIds
+      receiveIds.push(projectInfo._openid)
+      receiveIds = Array.from(new Set(receiveIds))
+      wx.requestSubscribeMessage({
+        tmplIds: [setting.subscribeMessageId],
+        success(response) {
+          if (response.errMsg === 'requestSubscribeMessage:ok') {
+            wx.cloud.callFunction({
+              name: 'subscribe',
+              data: {
+                projectId: projectInfo._id,
+                title: projectInfo.title,
+                createUser: projectInfo.createUser,
+                templateId: setting.subscribeMessageId,
+                receiveIds,
+                page: '/page/personal-info'
+              }
+            })
+          }
+        }
       })
     },
     addScoreData(tempScore) { // 提交数据
@@ -378,15 +486,55 @@ wepy.page({
         temp.forEach(v => {
           return this.isMeScore = (v._openid === this.userInfo._openid)
         })
+        if (this.projectInfo.guestIds && this.projectInfo.guestIds.length) {
+          return this.isComplete = (temp.length === this.projectInfo.guestIds.length)
+        } else {
+          this.isComplete = false
+        }
       } else {
         this.isMeScore = false
+        this.isComplete = false
       }
     },
     handleAverage({ avg, n }, temp) { // 计算平均分
       return { avg: (Number(temp.score) + n * avg) / (n + 1), n: n + 1 }
     },
     handleScoreFinish() {
-      console.log(1)
+      this.isFinish = true
+    },
+    handlePreImg(img) {
+      if (img) {
+        wx.previewImage({
+          current: img, // 当前显示图片的http链接
+          urls: [img] // 需要预览的图片http链接列表
+        })
+      }
+    },
+    handleGetMsg() { // 获取相关的订阅消息
+      const listQuery = {
+        projectId: this.projectInfo._id,
+        done: false
+      }
+      messageListApi(listQuery).then(response => {
+        const res = response.data
+        if (res && res.length) {
+          this.handleSendMsg(res[0])
+        }
+      })
+    },
+    handleSendMsg(msg) { // 云函数发送订阅消息
+      wx.cloud.callFunction({
+        name: 'send',
+        data: msg
+      }).then(() => {
+        this.handleUpdateMsg(msg)
+      })
+    },
+    handleUpdateMsg(msg) {
+      messageUpdateApi(msg.projectId, { done: true }).then(response => {
+        console.log(response)
+
+      })
     }
   }
 })
