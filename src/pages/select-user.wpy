@@ -65,7 +65,6 @@
 import wepy from '@wepy/core'
 import { mapState } from '@wepy/x'
 import store from '@/store'
-import { userListApi } from '@/api/user'
 
 wepy.page({
   store,
@@ -78,18 +77,26 @@ wepy.page({
     userList: []
   },
   computed: {
-    ...mapState(['guestList'])
+    ...mapState(['guestList', 'userInfo'])
   },
   attached() {
     this.result = this.guestList.map(u => u)
-    this.getList()
+    if (this.userInfo.state !== 0 || this.userInfo.role === 'admin') {
+      this.getList()
+    }
   },
   methods: {
     getList() {
-      this.listLoading = true
-      userListApi(this.listQuery).then(response => {
-        // this.listLoading = false
-        this.userList = response.data
+      wx.cloud.callFunction({
+        name: 'getCollection',
+        data: {
+          db: 'user',
+          data: this.listQuery
+        }
+      }).then(response => {
+        this.listLoading = false
+        const res = response.result
+        this.userList = res.data
         this.isAllSelect = (this.result.length && this.result.length === this.userList.length)
       }).catch(() => {
         this.listLoading = false

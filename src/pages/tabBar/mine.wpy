@@ -94,15 +94,15 @@
       <!--<div class="statistics-wrap">-->
         <!--<div class="statistics-item">-->
           <!--<div class="number">0</div>-->
-          <!--<div class="label">发起</div>-->
+          <!--<div class="label">发</div>-->
         <!--</div>-->
         <!--<div class="statistics-item">-->
           <!--<div class="number">0</div>-->
-          <!--<div class="label">已投</div>-->
+          <!--<div class="label">已</div>-->
         <!--</div>-->
         <!--<div class="statistics-item">-->
           <!--<div class="number">0</div>-->
-          <!--<div class="label">待投</div>-->
+          <!--<div class="label">待</div>-->
         <!--</div>-->
       <!--</div>-->
     <!--</div>-->
@@ -112,7 +112,7 @@
         <van-cell v-if="isAdmin" title="管理员" is-link url="/pages/user?state=1&role=admin"/>
         <van-cell v-if="isAdmin" title="嘉宾" is-link url="/pages/user?state=1&role=user"/>
         <van-cell v-if="isAdmin" title="待审核" is-link url="/pages/user?state=0&role=user"/>
-        <van-cell title="关于" is-link />
+        <!--<van-cell title="关于" is-link />-->
       </van-cell-group>
     </div>
   </div>

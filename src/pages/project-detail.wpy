@@ -264,6 +264,24 @@
               </div>
               <div v-if="isMeCreate && option.scores && option.scores.length" class="score-show-wrap clearfix">
                 <div v-for="s in option.scores" :key="s._id" class="score-show-preview-wrap">
+                  <div class="score-show-preview">
+                    <van-image
+                      :src="s.userAvatar"
+                      width="40"
+                      height="40"
+                      radius="4"
+                      lazy-load
+                      fit="cover"
+                      @click="handlePreImg(s.userAvatar)"/>
+                    <div class="score-show-content">
+                      <div class="name">{{ s.username }}</div>
+                      <div class="score">{{ s.score }}分</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="!isMeCreate && projectInfo.guestIds.includes(userInfo._openid)" class="score-show-wrap clearfix">
+                <div v-for="s in option.scores" :key="s._id" class="score-show-preview-wrap">
                   <div v-if="s._openid === userInfo._openid" class="score-show-preview">
                     <van-image
                       :src="s.userAvatar"
@@ -294,7 +312,7 @@
     </div>
     <div class="project-footer">
       <div class="operation-wrap">
-        <div v-if="meCanScore" class="btn-wrap">
+        <div v-if="meCanScore && !listLoading" class="btn-wrap">
           <van-button v-if="operationLoading" :disabled="operationLoading" type="info" block>加载中...</van-button>
           <van-button v-else type="info" block @click="handleConfirmScore">提交评分</van-button>
         </div>
@@ -313,7 +331,7 @@ import store from '@/store'
 import { projectDetailApi } from '@/api/project'
 import { optionListApi, optionUpdateApi } from '@/api/option'
 import { scoreListApi, scoreAddApi } from '@/api/score'
-import { messageListApi, messageUpdateApi } from '@/api/message'
+import { messageListApi } from '@/api/message'
 import setting from '@/setting'
 import Toast from '@/vant/toast/toast'
 
@@ -340,7 +358,8 @@ wepy.page({
     listCounter: 0,
     isMeScore: false,
     isFinish: false, // 项目是否结束
-    isComplete: false // 项目是否完成（区别于结束，结束：项目到期，完成：所有嘉宾评分完毕）
+    isComplete: false, // 项目是否完成（区别于结束，结束：项目到期，完成：所有嘉宾评分完毕）
+    isSubscribe: false
   },
   computed: {
     ...mapState(['userInfo']),
@@ -354,8 +373,18 @@ wepy.page({
         return false
       }
     },
-    isMeCreate() {
+    isMeCreate() { // 项目是否由我创建
       return (this.projectInfo._openid === this.userInfo._openid)
+    },
+    canSendMsg() {
+      return (this.isSubscribe && (this.isFinish || this.isComplete))
+    }
+  },
+  watch: {
+    canSendMsg(val) {
+      if (val) {
+        this.handleSendMsg()
+      }
     }
   },
   attached() {},
@@ -365,10 +394,6 @@ wepy.page({
       projectDetailApi(id).then(response => {
         this.projectInfo = response.data
         this.getOptionList(id)
-
-        this.handleGetMsg()
-
-
       }).catch(() => {
         this.listLoading = false
       })
@@ -425,10 +450,8 @@ wepy.page({
         this.addScoreData(tempScore)
       })
     },
-    handleSubscribe(projectInfo) { // 订阅消息 当项目完成时（项目截止或者所有嘉宾投完票），发送服务通知
-      let receiveIds = projectInfo.guestIds
-      receiveIds.push(projectInfo._openid)
-      receiveIds = Array.from(new Set(receiveIds))
+    handleSubscribe(projectInfo) { // 订阅消息 当项目完成时（项目截止或者所有嘉宾），发送服务通知
+      const that = this
       wx.requestSubscribeMessage({
         tmplIds: [setting.subscribeMessageId],
         success(response) {
@@ -440,9 +463,10 @@ wepy.page({
                 title: projectInfo.title,
                 createUser: projectInfo.createUser,
                 templateId: setting.subscribeMessageId,
-                receiveIds,
-                page: '/page/personal-info'
+                page: '/pages/project-detail?projectId='+projectInfo._id+'&projectTitle='+projectInfo.title
               }
+            }).then(() => {
+              that.isSubscribe = true
             })
           }
         }
@@ -462,6 +486,7 @@ wepy.page({
       })
     },
     getScoreList() { // 获取每个option的score数据
+      this.listLoading = true
       this.listCounter = 0
       this.optionList.map(o => {
         scoreListApi(o._id).then(response => {
@@ -483,11 +508,13 @@ wepy.page({
     },
     handleIsMeScore(temp) { // 我是否评过分
       if (temp && temp.length) {
+        const hasScoreList = []
         temp.forEach(v => {
-          return this.isMeScore = (v._openid === this.userInfo._openid)
+          hasScoreList.push(v._openid)
         })
+        this.isMeScore = (hasScoreList.includes(this.userInfo._openid))
         if (this.projectInfo.guestIds && this.projectInfo.guestIds.length) {
-          return this.isComplete = (temp.length === this.projectInfo.guestIds.length)
+          this.isComplete = (temp.length === this.projectInfo.guestIds.length)
         } else {
           this.isComplete = false
         }
@@ -510,31 +537,13 @@ wepy.page({
         })
       }
     },
-    handleGetMsg() { // 获取相关的订阅消息
-      const listQuery = {
-        projectId: this.projectInfo._id,
-        done: false
-      }
-      messageListApi(listQuery).then(response => {
-        const res = response.data
-        if (res && res.length) {
-          this.handleSendMsg(res[0])
-        }
-      })
-    },
-    handleSendMsg(msg) { // 云函数发送订阅消息
+    handleSendMsg() { // 云函数发送订阅消息
       wx.cloud.callFunction({
         name: 'send',
-        data: msg
-      }).then(() => {
-        this.handleUpdateMsg(msg)
-      })
-    },
-    handleUpdateMsg(msg) {
-      messageUpdateApi(msg.projectId, { done: true }).then(response => {
-        console.log(response)
-
-      })
+        data: {
+          projectId: this.projectInfo._id
+        }
+      }).then(() => {})
     }
   }
 })

@@ -9,13 +9,3 @@ export function messageListApi(data) {
     })
   })
 }
-
-export function messageUpdateApi(projectId, data) {
-  return new Promise((resolve, reject) => {
-    db.collection('message').doc(projectId).update({data}).then(res => {
-      resolve(res)
-    }).catch(err => {
-      reject(err)
-    })
-  })
-}

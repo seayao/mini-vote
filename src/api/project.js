@@ -1,7 +1,7 @@
 const db = wx.cloud.database()
 const _ = db.command
 
-export function projectListApi(guestId) {
+export function projectListApi(guestId, skip, limit) {
   return new Promise((resolve, reject) => {
     db.collection('project').where(_.or([
       {
@@ -10,7 +10,7 @@ export function projectListApi(guestId) {
       {
         guestIds: _.in([guestId])
       }
-    ])).orderBy('createTime', 'desc').get().then(res => {
+    ])).orderBy('createTime', 'desc').skip(skip).limit(limit).get().then(res => {
       resolve(res)
     }).catch(err => {
       reject(err)

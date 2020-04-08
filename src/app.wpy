@@ -32,7 +32,7 @@ wepy.app({
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#2d8cf0",
-    "navigationBarTitleText": "投票小程序",
+    "navigationBarTitleText": "首页",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#ededed"
   },

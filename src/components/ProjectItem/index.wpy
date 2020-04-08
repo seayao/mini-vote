@@ -49,6 +49,12 @@
       text-overflow: ellipsis;
     }
 
+    .description {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #000;
+    }
+
     .content-footer {
       width: 100%;
       height: 140px;
@@ -105,9 +111,10 @@
               </div>
             </div>
           </div>
-          <div class="content-top-r fr">{{ project.guestIds.length }}人参与</div>
+          <div v-if="auth" class="content-top-r fr">{{ project.guestIds.length }}人参与</div>
         </div>
         <div class="content-main">{{ project.title }}</div>
+        <div v-if="!auth" class="description">{{ project.description }}</div>
       </div>
       <div v-if="project.coverImg" class="content-footer">
         <van-image
@@ -129,6 +136,10 @@ wepy.component({
     project: {
       type: Object,
       default: {}
+    },
+    auth: {
+      type: Boolean,
+      default: false
     }
   },
   data: {

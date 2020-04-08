@@ -80,7 +80,7 @@
 
 <script>
 import wepy from '@wepy/core'
-import { userListApi, userUpdateApi } from '@/api/user'
+import { userUpdateApi } from '@/api/user'
 import { mapState } from '@wepy/x'
 import store from '@/store'
 import Toast from '@/vant/toast/toast'
@@ -130,9 +130,16 @@ wepy.page({
   methods: {
     getList() {
       this.listLoading = true
-      userListApi(this.listQuery).then(response => {
-        // this.listLoading = false
-        this.userList = response.data
+      wx.cloud.callFunction({
+        name: 'getCollection',
+        data: {
+          db: 'user',
+          data: this.listQuery
+        }
+      }).then(response => {
+        this.listLoading = false
+        const res = response.result
+        this.userList = res.data
       }).catch(() => {
         this.listLoading = false
       })
@@ -184,7 +191,14 @@ wepy.page({
       }
     },
     updateData(_id, temp) {
-      userUpdateApi(_id, temp).then(response => {
+      wx.cloud.callFunction({
+        name: 'updateCollection',
+        data: {
+          db: 'user',
+          indexKey: _id,
+          data: temp
+        }
+      }).then(response => {
         this.updateCounter++
         if (_id === this.userInfo._id) {
           const tempUser = Object.assign({}, this.userInfo, temp)

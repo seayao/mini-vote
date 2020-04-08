@@ -115,14 +115,14 @@
   <div class="container create-container">
     <van-notify id="van-notify" />
     <van-toast id="van-toast" />
-    <div class="create-top">
+    <div v-if="isAuth" class="create-top">
       <van-field
         :value="temp.title"
         size="large"
         required
         type="textarea"
         autosize
-        placeholder="投票标题"
+        placeholder="标题"
         :custom-style="'font-size: 18px'"
         :placeholder-style="'font-size: 18px'"
         :error-message="titleErrorMsg"
@@ -147,7 +147,7 @@
           @delete="deleteCover"/>
       </div>
     </div>
-    <div class="create-main">
+    <div v-if="isAuth" class="create-main">
       <div v-for="(o, index) in optionList" :key="index" class="option-item">
         <div class="option-item-l">
           <div class="option-item-operation" @click="handleRemoveOption(index)">
@@ -200,15 +200,18 @@
           <div slot="label">{{ guestErrorMsg }}</div>
         </van-cell>
         <van-cell
+          v-if="isAuth"
           title="评分范围(小)">
           <van-stepper :value="temp.scoreMin" :min="0" :max="temp.scoreMax" @change="handleChangeScoreMin"/>
         </van-cell>
         <van-cell
+          v-if="isAuth"
           title="评分范围(大)">
           <van-stepper :value="temp.scoreMax" :min="temp.scoreMin" @change="handleChangeScoreMax"/>
         </van-cell>
         <van-cell
-          title="是否公开投票"
+          v-if="isAuth"
+          title="是否公开项目"
           use-label-slot>
           <div slot="label">{{ openMsg }}</div>
           <van-switch :checked="temp.isOpen" size="24px" @change="changeOpen"/>
@@ -230,7 +233,7 @@
       <div class="create-btn-wrap">
         <van-button v-if="!isReg" type="primary" block open-type="getUserInfo" bindgetuserinfo="handleAddUser">未授权，授权登录？</van-button>
         <van-button v-if="isReg && operationLoading" :disabled="operationLoading" :loading="operationLoading" type="info" block>加载中...</van-button>
-        <van-button v-if="isReg && !operationLoading"  type="info" block @click="handleAdd">发起投票</van-button>
+        <van-button v-if="isReg && !operationLoading"  type="info" block @click="handleAdd">创建项目</van-button>
       </div>
     </div>
   </div>
@@ -290,6 +293,9 @@ wepy.page({
     },
     isReg() {
       return (this.userInfo && this.userInfo._id)
+    },
+    isAuth() {
+      return (this.userInfo && this.userInfo.state === 1)
     }
   },
   watch: {
@@ -309,7 +315,7 @@ wepy.page({
       if (event.$wx.detail) {
         this.titleErrorMsg = ''
       } else {
-        this.titleErrorMsg = '投票标题不能为空'
+        this.titleErrorMsg = '标题不能为空'
       }
     },
     handleChangeDes(event) {
@@ -343,7 +349,7 @@ wepy.page({
       if (this.optionList.length > 1) {
         this.optionList.splice(index, 1)
       } else {
-        this.optionList[0].optionErrorMsg = '至少添加一个投票选项'
+        this.optionList[0].optionErrorMsg = '至少添加一个选项'
       }
     },
     handleChangeUserName(index, event) {
@@ -396,13 +402,13 @@ wepy.page({
       this.deadlineTime = formatTime()
       store.dispatch('setGuestList', []) // 存储嘉宾到store
     },
-    handleAdd() { // 点击了发起投票
+    handleAdd() { // 点击了发起
       const deadlineStr = this.deadlineDate + ' ' + this.deadlineTime
       this.temp.deadline = new Date(deadlineStr.replace(/-/g, '/')).getTime()
       if (this.temp.title === '') {
-        this.titleErrorMsg = '投票标题不能为空'
+        this.titleErrorMsg = '标题不能为空'
       } else if (!this.optionList || !this.optionList.length) {
-        Notify('请至少添加一个投票选项')
+        Notify('请至少添加一个选项')
       } else if (this.temp.deadline < new Date().getTime()) {
         this.deadlineErrorMsg = '截止时间不能早于当前时间'
       } else {
@@ -453,6 +459,11 @@ wepy.page({
           createTime: new Date().getTime()
         })
       }
+
+
+
+      return false
+
       this.addData(tempData)
     },
     addData(tempData) {
@@ -505,7 +516,7 @@ wepy.page({
           this.operationLoading = false
           Toast.clear()
           store.dispatch('setIsRefresh', true) // 刷新首页数据
-          this.$navigate({ url: '/pages/project-detail?projectId='+this.projectId+'&projectTitle='+this.projectTitle })  // 跳转投票页面
+          this.$navigate({ url: '/pages/project-detail?projectId='+this.projectId+'&projectTitle='+this.projectTitle })  // 跳转页面
         }
       }).catch(() => {
         this.operationLoading = false

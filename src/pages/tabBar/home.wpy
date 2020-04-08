@@ -3,17 +3,24 @@
   .home-container {
     background: transparent;
   }
-  .project-list {
+  .project-list-wrap {
     margin-top: -10px;
   }
 </style>
 <template>
   <div class="container home-container">
-    <div class="project-list">
-      <navigator v-for="(item, index) in projectList" :key="index" :url="'/pages/project-detail?projectId='+item._id+'&projectTitle='+item.title">
-        <project-item :project="item"/>
-      </navigator>
-      <van-divider contentPosition="center">加载完毕</van-divider>
+    <div class="project-list-wrap">
+      <div v-if="isAuth" class="project-list">
+        <navigator v-for="(item, index) in projectList" :key="index" :url="'/pages/project-detail?projectId='+item._id+'&projectTitle='+item.title">
+          <project-item :project="item" :auth="isAuth" />
+        </navigator>
+      </div>
+      <div v-else class="project-list">
+        <div v-for="(item, index) in projectList" :key="index" class="project-list-item">
+          <project-item :project="item" :auth="isAuth" />
+        </div>
+      </div>
+      <van-divider v-if="listLoading || !canLoad" contentPosition="center">{{ loadMsg }}</van-divider>
     </div>
   </div>
 </template>
@@ -28,10 +35,27 @@ import { projectListApi, projectUpdateApi } from '@/api/project'
 wepy.page({
   store,
   data: {
-    projectList: []
+    limit: 10, //  每次加载多少条数据（固定值）
+    skip: 0, // 从第几条开始取
+    page: 1, // 第几页
+    projectList: [],
+    listLoading: false,
+    canLoad: true // 是否有数据 可以继续加载？
   },
   computed: {
-    ...mapState(['userInfo', 'isRefresh'])
+    ...mapState(['userInfo', 'isRefresh']),
+    loadMsg() {
+      if (this.listLoading) {
+        return '加载中'
+      } else if (this.canLoad) {
+        return ''
+      } else {
+        return '没有更多数据'
+      }
+    },
+    isAuth() {
+      return (this.userInfo && this.userInfo._openid && this.userInfo.state === 1)
+    }
   },
   watch: {
     isRefresh(val) {
@@ -70,10 +94,15 @@ wepy.page({
       }
     },
     getList() {
+      this.listLoading = true
+      wx.showNavigationBarLoading() //在标题栏中显示加载
       const tempId = this.userInfo._openid || ''
-      projectListApi(tempId).then(response => {
-        this.projectList = response.data
-        this.projectList = response.data.map(p => {
+      projectListApi(tempId, this.skip, this.limit).then(response => {
+        this.listLoading = false
+        wx.stopPullDownRefresh()
+        wx.hideNavigationBarLoading() //完成停止加载
+        this.canLoad = (response.data && response.data.length >= this.limit)
+        const tempList = response.data.map(p => {
           if (!p.coverImg && p.coverImgCloud) { // 获取云图片的真实地址
             wx.cloud.getTempFileURL({
               fileList: [p.coverImgCloud]
@@ -88,8 +117,16 @@ wepy.page({
           }
           return p
         })
+        if (this.page === 1) {
+          this.projectList = tempList
+        } else {
+          this.projectList = this.projectList.concat(tempList)
+        }
         store.dispatch('setIsRefresh', false) // 刷新首页数据
       }).catch(err => {
+        this.listLoading = false
+        wx.stopPullDownRefresh()
+        wx.hideNavigationBarLoading() //完成停止加载
         store.dispatch('setIsRefresh', false) // 刷新首页数据
       })
     },
@@ -97,11 +134,25 @@ wepy.page({
       projectUpdateApi(_id, tempData).then(response => {
       })
     }
+  },
+  onPullDownRefresh() { // 下拉刷新
+    this.skip = 0
+    this.page = 1
+    this.getList()
+  },
+  onReachBottom() { // 上拉加载
+    this.skip = this.limit * this.page
+    this.page++
+    if (this.canLoad) {
+      this.getList()
+    }
   }
 })
 </script>
 <config>
 {
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 100,
   "usingComponents": {
     "project-item": "../../components/ProjectItem/index",
     "van-divider": "../../vant/divider/index"
